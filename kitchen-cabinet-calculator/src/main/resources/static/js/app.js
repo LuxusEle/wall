@@ -365,6 +365,8 @@ class KitchenCalculator {
         this.updateWallList();
         this.updateCostSummary();
         this.drawElevation();
+        // Always update wall selector in placement tab
+        this.populatePlacementWallSelector && this.populatePlacementWallSelector();
     }
 
     updateWallList() {
@@ -1122,9 +1124,9 @@ class KitchenCalculator {
         // Set cabinet data
         item.dataset.cabinetId = cabinet.id;
         item.dataset.cabinetName = cabinet.name.toLowerCase(); // For search
-        item.dataset.cabinetCode = cabinet.code.toLowerCase(); // For search
+        item.dataset.cabinetCode = cabinet.id.toLowerCase(); // Use id as code for search
         item.querySelector('.cabinet-name').textContent = cabinet.name;
-        item.querySelector('.cabinet-code').textContent = cabinet.code;
+        item.querySelector('.cabinet-code').textContent = cabinet.id; // Use id as code display
         item.querySelector('.cabinet-width').textContent = cabinet.width;
         item.querySelector('.cabinet-height').textContent = cabinet.height;
         item.querySelector('.cabinet-depth').textContent = cabinet.depth;
@@ -1419,7 +1421,7 @@ class KitchenCalculator {
         ctx.fillStyle = '#8b4513';
         wall.doors.forEach(door => {
             const doorX = startX + door.distanceFromLeft * this.scale;
-            const doorY = startY + wallHeight - door.distanceFromFloor * this.scale - door.height * this.scale;
+            const doorY = startY + wallHeight - door.height * this.scale; // Doors start from floor
             const doorWidth = door.width * this.scale;
             const doorHeight = door.height * this.scale;
             ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
@@ -1429,7 +1431,7 @@ class KitchenCalculator {
         ctx.fillStyle = '#87CEEB';
         wall.windows.forEach(window => {
             const windowX = startX + window.distanceFromLeft * this.scale;
-            const windowY = startY + wallHeight - window.distanceFromFloor * this.scale;
+            const windowY = startY + wallHeight - window.distanceFromFloor * this.scale - window.height * this.scale;
             const windowWidth = window.width * this.scale;
             const windowHeight = window.height * this.scale;
             ctx.fillRect(windowX, windowY, windowWidth, windowHeight);
@@ -1480,7 +1482,7 @@ class KitchenCalculator {
             ctx.fillStyle = 'white';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(cabinet.code, cabinetX + cabinetWidth / 2, cabinetY + cabinetHeight / 2);
+            ctx.fillText(cabinet.id, cabinetX + cabinetWidth / 2, cabinetY + cabinetHeight / 2);
 
             // Store bounds for dragging
             placedCabinet.bounds = {
@@ -1545,7 +1547,7 @@ class KitchenCalculator {
             ctx.textAlign = 'center';
             ctx.fillText('PREVIEW', cabinetX + cabinetWidth / 2, cabinetY + cabinetHeight / 2 - 6);
             ctx.font = '10px Arial';
-            ctx.fillText(cabinet.code, cabinetX + cabinetWidth / 2, cabinetY + cabinetHeight / 2 + 6);
+            ctx.fillText(cabinet.id, cabinetX + cabinetWidth / 2, cabinetY + cabinetHeight / 2 + 6);
             
             ctx.restore();
 
