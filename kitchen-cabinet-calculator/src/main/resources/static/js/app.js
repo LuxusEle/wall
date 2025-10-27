@@ -1329,7 +1329,8 @@ class KitchenCalculator {
             // Check if it fits
             if (currentX + cabinetWidthInFeet <= wall.length) {
                 // Check for overlaps with doors/windows
-                const overlaps = this.checkOverlap(wall, currentX, cabinetWidthInFeet, cabinetHeightInFeet, cabinet.type);
+                const cabinetType = this.getCabinetType(cabinet.id);
+                const overlaps = this.checkOverlap(wall, currentX, cabinetWidthInFeet, cabinetHeightInFeet, cabinetType);
                 
                 if (overlaps) {
                     alert(`⚠️ Cabinet "${cabinet.name}" cannot be placed at position ${this.formatDimension(currentX)} because it overlaps with a door or window.\n\nPlease edit the cabinet dimensions or place it manually by dragging after placement.`);
@@ -1389,6 +1390,14 @@ class KitchenCalculator {
         }
 
         return false;
+    }
+
+    getCabinetType(cabinetId) {
+        // Infer cabinet type from ID prefix
+        if (cabinetId.startsWith('base-')) return 'base';
+        if (cabinetId.startsWith('wall-')) return 'wall';
+        if (cabinetId.startsWith('tall-')) return 'tall';
+        return 'specialty'; // hood, filler, etc.
     }
 
     parseDimensionToFeet(dimensionStr) {
@@ -1498,10 +1507,11 @@ class KitchenCalculator {
             const cabinetX = wallStartX + placedCabinet.x * this.scale;
             let cabinetY;
             
-            // Determine Y position based on cabinet type
-            if (cabinet.type === 'wall') {
+            // Determine Y position based on cabinet ID (infer type from ID)
+            const cabinetType = this.getCabinetType(cabinet.id);
+            if (cabinetType === 'wall') {
                 cabinetY = wallStartY + 20; // Upper cabinet
-            } else if (cabinet.type === 'tall') {
+            } else if (cabinetType === 'tall') {
                 cabinetY = wallStartY; // Floor to ceiling
             } else {
                 cabinetY = wallStartY + wallHeight - heightInFeet * this.scale; // Base cabinet (on floor)
@@ -1556,10 +1566,11 @@ class KitchenCalculator {
             const cabinetX = wallStartX + currentX * this.scale;
             let cabinetY;
             
-            // Determine Y position based on cabinet type
-            if (cabinet.type === 'wall') {
+            // Determine Y position based on cabinet ID (infer type from ID)
+            const cabinetType = this.getCabinetType(cabinet.id);
+            if (cabinetType === 'wall') {
                 cabinetY = wallStartY + 20; // Upper cabinet
-            } else if (cabinet.type === 'tall') {
+            } else if (cabinetType === 'tall') {
                 cabinetY = wallStartY; // Floor to ceiling
             } else {
                 cabinetY = wallStartY + wallHeight - heightInFeet * this.scale; // Base cabinet
