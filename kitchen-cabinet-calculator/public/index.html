@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Cabinet Cost Calculator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Kitchen Cabinet Cost Calculator</h1>
+            <p class="subtitle">Professional Wall & Cabinet Planning System</p>
+            <div class="header-controls">
+                <div class="unit-selector">
+                    <label for="unit-select">Units:</label>
+                    <select id="unit-select">
+                        <option value="feet">Feet (ft)</option>
+                        <option value="meters">Meters (m)</option>
+                        <option value="millimeters">Millimeters (mm)</option>
+                    </select>
+                </div>
+                <div class="cabinet-system-selector">
+                    <label for="cabinet-system-select">Cabinet System:</label>
+                    <select id="cabinet-system-select">
+                        <option value="european-metric">European Frameless (Metric)</option>
+                        <option value="european-imperial">European Frameless (Imperial)</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab active" data-tab="walls">📐 Walls</button>
+            <button class="tab" data-tab="placement">🎯 Place Cabinets</button>
+        </div>
+
+        <!-- Walls Tab -->
+        <div class="tab-content active" id="walls-tab">
+
+        <div class="main-layout">
+            <!-- Left Panel: Input Controls -->
+            <div class="input-panel">
+                <div class="panel-section">
+                    <h2>Wall Configuration</h2>
+                    <div class="wall-list" id="wall-list">
+                        <p class="empty-state">No walls added yet. Click "Add New Wall" to begin.</p>
+                    </div>
+                    <button type="button" class="btn-primary" id="add-wall-btn">
+                        <span>➕</span> Add New Wall
+                    </button>
+                </div>
+
+                <!-- Wall Input Form (Hidden by default) -->
+                <div class="panel-section" id="wall-form-section" style="display: none;">
+                    <h3 id="wall-form-title">Configure Wall A</h3>
+                    <form id="wall-form">
+                        <div class="form-group">
+                            <label for="wall-length">Wall Length (ft):</label>
+                            <input type="number" id="wall-length" step="0.1" min="1" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="wall-height">Wall Height (ft):</label>
+                            <input type="number" id="wall-height" step="0.1" min="1" value="8" required>
+                        </div>
+
+                        <h4>Doors</h4>
+                        <div id="doors-container"></div>
+                        <button type="button" class="btn-secondary" id="add-door-btn">+ Add Door</button>
+
+                        <h4>Windows</h4>
+                        <div id="windows-container"></div>
+                        <button type="button" class="btn-secondary" id="add-window-btn">+ Add Window</button>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Save Wall</button>
+                            <button type="button" class="btn-cancel" id="cancel-wall-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Cost Summary -->
+                <div class="panel-section">
+                    <h2>Cost Summary</h2>
+                    <div class="cost-details">
+                        <div class="cost-row">
+                            <span>Total Wall Length:</span>
+                            <span id="total-length">0 ft</span>
+                        </div>
+                        <div class="cost-row">
+                            <span>Available Cabinet Space:</span>
+                            <span id="available-space">0 ft</span>
+                        </div>
+                        <div class="cost-row total">
+                            <span>Estimated Cost:</span>
+                            <span id="total-cost">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: 2D Elevation View -->
+            <div class="elevation-panel">
+                <div class="panel-section">
+                    <h2>2D Elevation Plan</h2>
+                    <div class="elevation-controls">
+                        <button type="button" class="btn-small" id="zoom-in-btn">🔍+</button>
+                        <button type="button" class="btn-small" id="zoom-out-btn">🔍-</button>
+                        <button type="button" class="btn-small" id="reset-view-btn">Reset View</button>
+                    </div>
+                    <div id="elevation-plan" class="elevation-container">
+                        <canvas id="elevation-canvas"></canvas>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #34495e;"></div>
+                            <span>Wall</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #8B4513;"></div>
+                            <span>Door</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #87CEEB;"></div>
+                            <span>Window</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Placement Tab -->
+        <div class="tab-content" id="placement-tab">
+            <div class="placement-layout">
+                <!-- Left Sidebar: Cabinet Selection -->
+                <div class="placement-sidebar">
+                    <h2>📦 Available Cabinets</h2>
+                    <p class="subtitle-small">Select cabinets to place on wall</p>
+                    
+                    <!-- Cabinet System Selector -->
+                    <div class="form-group">
+                        <label for="placement-cabinet-system">Cabinet System:</label>
+                        <select id="placement-cabinet-system" class="form-control">
+                            <option value="european-metric">European Frameless (Metric - 600mm)</option>
+                            <option value="european-imperial">European Frameless (Imperial - 24")</option>
+                        </select>
+                    </div>
+
+                    <!-- Search Box -->
+                    <div class="form-group">
+                        <label for="cabinet-search">🔍 Search Cabinets:</label>
+                        <input 
+                            type="text" 
+                            id="cabinet-search" 
+                            class="form-control" 
+                            placeholder="Type cabinet name or code..."
+                            autocomplete="off">
+                    </div>
+
+                    <!-- Cabinet Selection List -->
+                    <div class="cabinet-selection-list" id="cabinet-selection-list">
+                        <!-- Dynamically populated -->
+                    </div>
+
+                    <div class="placement-actions">
+                        <button type="button" class="btn-primary" id="place-selected-btn" disabled>
+                            � Place Selected Cabinets
+                        </button>
+                        <button type="button" class="btn-secondary auto-fill-btn" id="auto-fill-btn">
+                            🤖 Auto-Fill Spaces
+                        </button>
+                        <button type="button" class="btn-danger" id="clear-placement-btn">
+                            🗑️ Clear All Cabinets
+                        </button>
+                    </div>
+
+                    <!-- Placed Cabinets Summary -->
+                    <div class="placed-summary">
+                        <h3>Placed Cabinets</h3>
+                        <div id="placed-cabinets-summary">
+                            <p class="empty-state">No cabinets placed yet</p>
+                        </div>
+                        <div class="cost-summary">
+                            <h4>Total Cost: $<span id="total-cost">0.00</span></h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Area: Canvas View -->
+                <div class="placement-canvas-area">
+                    <div class="placement-header">
+                        <h2>� Wall View</h2>
+                        <div class="wall-selector">
+                            <label>Select Wall:</label>
+                            <select id="placement-wall-select" class="form-control">
+                                <option value="">-- Choose a Wall --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="placement-canvas-container">
+                        <canvas id="placement-canvas"></canvas>
+                        <div class="canvas-overlay" id="canvas-message">
+                            <p>📋 Add walls in "Walls" tab first, then select a wall above to start placing cabinets</p>
+                        </div>
+                    </div>
+
+                    <div class="placement-instructions">
+                        <h4>🎯 How to Place Cabinets:</h4>
+                        <ol>
+                            <li>✅ Select cabinets from the left panel (check boxes)</li>
+                            <li>✏️ Edit cabinet dimensions if needed (click edit button)</li>
+                            <li>📍 Click "Place Selected Cabinets" - they'll appear on the wall</li>
+                            <li>🖱️ Drag cabinets to reposition (they snap to edges automatically)</li>
+                            <li>🤖 Use "Auto-Fill" to fill remaining spaces intelligently</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabinet Selection Item Template -->
+    <template id="cabinet-selection-template">
+        <div class="cabinet-selection-item">
+            <div class="cabinet-checkbox">
+                <input type="checkbox" class="cabinet-select-check">
+            </div>
+            <div class="cabinet-details">
+                <h4 class="cabinet-name"></h4>
+                <p class="cabinet-code"></p>
+                <div class="cabinet-dimensions">
+                    <span class="cabinet-width"></span> × 
+                    <span class="cabinet-height"></span> × 
+                    <span class="cabinet-depth"></span>
+                </div>
+                <p class="cabinet-price"></p>
+            </div>
+            <div class="cabinet-actions">
+                <button class="btn-edit" title="Edit dimensions">✏️</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Cabinet Edit Modal -->
+    <div id="cabinet-edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Cabinet Dimensions</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="cabinet-edit-form">
+                    <input type="hidden" id="edit-cabinet-id">
+                    <div class="form-group">
+                        <label>Cabinet Name:</label>
+                        <p id="edit-cabinet-name" class="form-value"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cabinet-width">Width:</label>
+                        <input type="number" id="edit-cabinet-width" class="form-control" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cabinet-height">Height:</label>
+                        <input type="number" id="edit-cabinet-height" class="form-control" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cabinet-depth">Depth:</label>
+                        <input type="number" id="edit-cabinet-depth" class="form-control" step="0.1" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">💾 Save Changes</button>
+                        <button type="button" class="btn-secondary modal-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wall Card Template -->
+    <template id="wall-card-template">
+        <div class="wall-card">
+            <div class="wall-header">
+                <h3></h3>
+                <div class="wall-actions">
+                    <button class="btn-edit-wall">✏️ Edit</button>
+                    <button class="btn-delete-wall">🗑️ Delete</button>
+                </div>
+            </div>
+            <div class="wall-details">
+                <p><strong>Length:</strong> <span class="wall-length"></span></p>
+                <p><strong>Height:</strong> <span class="wall-height"></span></p>
+                <p><strong>Doors:</strong> <span class="wall-doors"></span></p>
+                <p><strong>Windows:</strong> <span class="wall-windows"></span></p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Cabinet Card Template (OLD - keeping for reference) -->
+    <template id="cabinet-card-template">
+        <div class="cabinet-card">
+            <div class="cabinet-icon"></div>
+            <div class="cabinet-info">
+                <h4 class="cabinet-name"></h4>
+                <p class="cabinet-dimensions"></p>
+                <p class="cabinet-price"></p>
+            </div>
+            <button class="btn-add-cabinet">+ Select</button>
+        </div>
+    </template>
+
+    <!-- Door/Window Input Template -->
+    <template id="door-template">
+        <div class="opening-input">
+            <div class="opening-header">
+                <span class="opening-label">Door</span>
+                <button type="button" class="btn-remove">✕</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group-inline">
+                    <label>Width (ft):</label>
+                    <input type="number" class="door-width" step="0.1" min="0.1" value="3" required>
+                </div>
+                <div class="form-group-inline">
+                    <label>Height (ft):</label>
+                    <input type="number" class="door-height" step="0.1" min="0.1" value="7" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Distance from Left Edge (ft):</label>
+                <input type="number" class="door-distance" step="0.1" min="0" value="0" required>
+            </div>
+        </div>
+    </template>
+
+    <template id="window-template">
+        <div class="opening-input">
+            <div class="opening-header">
+                <span class="opening-label">Window</span>
+                <button type="button" class="btn-remove">✕</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group-inline">
+                    <label>Width (ft):</label>
+                    <input type="number" class="window-width" step="0.1" min="0.1" value="3" required>
+                </div>
+                <div class="form-group-inline">
+                    <label>Height (ft):</label>
+                    <input type="number" class="window-height" step="0.1" min="0.1" value="4" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Distance from Left Edge (ft):</label>
+                <input type="number" class="window-distance" step="0.1" min="0" value="0" required>
+            </div>
+            <div class="form-group">
+                <label>Distance from Floor (ft):</label>
+                <input type="number" class="window-floor-distance" step="0.1" min="0" value="3" required>
+            </div>
+        </div>
+    </template>
+
+    <script src="js/cabinetData.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
