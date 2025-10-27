@@ -131,6 +131,11 @@ class PlacedCabinet {
     }
 }
 
+// Make CABINET_SYSTEMS globally available
+if (typeof window !== 'undefined') {
+    window.CABINET_SYSTEMS = CABINET_SYSTEMS;
+}
+
 // Utility function to generate unique IDs
 function generateUniqueId() {
     return 'cab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
