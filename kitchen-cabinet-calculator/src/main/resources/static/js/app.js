@@ -445,6 +445,9 @@ class KitchenCalculator {
             false
         );
         
+        // Calculate and draw leftover spaces with detailed dimensions
+        this.drawLeftoverSpaces(wall, startX, startY, wallWidth, wallHeight);
+        
         // Dimension lines for doors
         wall.doors.forEach(door => {
             const doorX = startX + door.distanceFromLeft * this.scale;
@@ -501,6 +504,120 @@ class KitchenCalculator {
                 false
             );
         });
+    }
+
+    drawLeftoverSpaces(wall, startX, startY, wallWidth, wallHeight) {
+        const ctx = this.ctx;
+        
+        // Collect all obstacles (doors and windows)
+        const obstacles = [];
+        
+        wall.doors.forEach(door => {
+            obstacles.push({
+                start: door.distanceFromLeft,
+                end: door.distanceFromLeft + door.width,
+                type: 'door'
+            });
+        });
+        
+        wall.windows.forEach(window => {
+            obstacles.push({
+                start: window.distanceFromLeft,
+                end: window.distanceFromLeft + window.width,
+                type: 'window'
+            });
+        });
+        
+        // Sort by start position
+        obstacles.sort((a, b) => a.start - b.start);
+        
+        // Calculate leftover spaces
+        let currentPos = 0;
+        const spaces = [];
+        
+        obstacles.forEach(obstacle => {
+            if (obstacle.start > currentPos) {
+                spaces.push({
+                    start: currentPos,
+                    end: obstacle.start,
+                    length: obstacle.start - currentPos
+                });
+            }
+            currentPos = Math.max(currentPos, obstacle.end);
+        });
+        
+        // Add final space
+        if (currentPos < wall.length) {
+            spaces.push({
+                start: currentPos,
+                end: wall.length,
+                length: wall.length - currentPos
+            });
+        }
+        
+        // Draw leftover space annotations on the wall
+        spaces.forEach(space => {
+            if (space.length > 0.5) { // Only show if space is significant (> 6 inches)
+                const spaceStartX = startX + (space.start * this.scale);
+                const spaceWidth = space.length * this.scale;
+                const centerX = spaceStartX + spaceWidth / 2;
+                
+                // Draw upper cabinet area leftover space (light blue box)
+                const upperY = startY + this.scale * 1.5;
+                const upperHeight = this.scale * 2.5;
+                
+                ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
+                ctx.fillRect(spaceStartX, upperY, spaceWidth, upperHeight);
+                
+                ctx.strokeStyle = '#3498db';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 3]);
+                ctx.strokeRect(spaceStartX, upperY, spaceWidth, upperHeight);
+                ctx.setLineDash([]);
+                
+                // Upper space label
+                ctx.fillStyle = '#2980b9';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${space.length.toFixed(1)}'`, centerX, upperY + upperHeight / 2);
+                
+                // Draw lower cabinet area leftover space (light green box)
+                const lowerY = startY + wallHeight - (this.scale * 2.5);
+                const lowerHeight = this.scale * 2.5;
+                
+                // Check if there's a door blocking this lower space
+                const hasDoorHere = wall.doors.some(door => 
+                    door.distanceFromLeft < space.end && 
+                    (door.distanceFromLeft + door.width) > space.start
+                );
+                
+                if (!hasDoorHere) {
+                    ctx.fillStyle = 'rgba(46, 204, 113, 0.1)';
+                    ctx.fillRect(spaceStartX, lowerY, spaceWidth, lowerHeight);
+                    
+                    ctx.strokeStyle = '#27ae60';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 3]);
+                    ctx.strokeRect(spaceStartX, lowerY, spaceWidth, lowerHeight);
+                    ctx.setLineDash([]);
+                    
+                    // Lower space label
+                    ctx.fillStyle = '#229954';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${space.length.toFixed(1)}'`, centerX, lowerY + lowerHeight / 2);
+                }
+            }
+        });
+        
+        // Add legend text
+        ctx.fillStyle = '#2980b9';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('Upper Cabinet Space', startX, startY - 70);
+        
+        ctx.fillStyle = '#229954';
+        ctx.fillText('Lower Cabinet Space', startX, startY - 58);
     }
 
     drawDimensionLine(x1, y1, x2, y2, label, isHorizontal) {
