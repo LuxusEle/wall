@@ -7,6 +7,8 @@ class KitchenCalculator {
         this.canvas = document.getElementById('elevation-canvas');
         this.ctx = this.canvas.getContext('2d');
         this.wallLabels = ['A', 'B', 'C', 'D'];
+        this.currentUnit = 'feet'; // Default unit
+        this.unitSymbol = 'ft';
         
         this.init();
     }
@@ -17,12 +19,66 @@ class KitchenCalculator {
         this.updateDisplay();
     }
 
+    convertToFeet(value) {
+        switch(this.currentUnit) {
+            case 'meters':
+                return value * 3.28084; // meters to feet
+            case 'millimeters':
+                return value / 304.8; // mm to feet
+            case 'feet':
+            default:
+                return value;
+        }
+    }
+
+    convertFromFeet(value) {
+        switch(this.currentUnit) {
+            case 'meters':
+                return value / 3.28084; // feet to meters
+            case 'millimeters':
+                return value * 304.8; // feet to mm
+            case 'feet':
+            default:
+                return value;
+        }
+    }
+
+    getUnitSymbol() {
+        switch(this.currentUnit) {
+            case 'meters':
+                return 'm';
+            case 'millimeters':
+                return 'mm';
+            case 'feet':
+            default:
+                return 'ft';
+        }
+    }
+
+    formatDimension(valueInFeet) {
+        const converted = this.convertFromFeet(valueInFeet);
+        const symbol = this.getUnitSymbol();
+        
+        if (this.currentUnit === 'millimeters') {
+            return `${Math.round(converted)}${symbol}`;
+        } else {
+            return `${converted.toFixed(2)}${symbol}`;
+        }
+    }
+
     setupCanvas() {
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = 600;
     }
 
     setupEventListeners() {
+        // Unit selector
+        document.getElementById('unit-select').addEventListener('change', (e) => {
+            this.currentUnit = e.target.value;
+            this.unitSymbol = this.getUnitSymbol();
+            this.updateDisplay();
+        });
+
         // Add Wall Button
         document.getElementById('add-wall-btn').addEventListener('click', () => {
             if (this.walls.length < 4) {
@@ -79,6 +135,11 @@ class KitchenCalculator {
         const wallLabel = this.wallLabels[this.walls.length];
         document.getElementById('wall-form-title').textContent = `Configure Wall ${wallLabel}`;
         
+        // Update labels with current unit
+        const unit = this.getUnitSymbol();
+        document.querySelector('label[for="wall-length"]').textContent = `Wall Length (${unit}):`;
+        document.querySelector('label[for="wall-height"]').textContent = `Wall Height (${unit}):`;
+        
         // Reset form
         document.getElementById('wall-form').reset();
         document.getElementById('doors-container').innerHTML = '';
@@ -122,16 +183,16 @@ class KitchenCalculator {
     }
 
     saveWall() {
-        const length = parseFloat(document.getElementById('wall-length').value);
-        const height = parseFloat(document.getElementById('wall-height').value);
+        const length = this.convertToFeet(parseFloat(document.getElementById('wall-length').value));
+        const height = this.convertToFeet(parseFloat(document.getElementById('wall-height').value));
         
         // Collect doors
         const doors = [];
         document.querySelectorAll('#doors-container .opening-input').forEach(doorEl => {
             doors.push({
-                width: parseFloat(doorEl.querySelector('.door-width').value),
-                height: parseFloat(doorEl.querySelector('.door-height').value),
-                distanceFromLeft: parseFloat(doorEl.querySelector('.door-distance').value)
+                width: this.convertToFeet(parseFloat(doorEl.querySelector('.door-width').value)),
+                height: this.convertToFeet(parseFloat(doorEl.querySelector('.door-height').value)),
+                distanceFromLeft: this.convertToFeet(parseFloat(doorEl.querySelector('.door-distance').value))
             });
         });
 
@@ -139,10 +200,10 @@ class KitchenCalculator {
         const windows = [];
         document.querySelectorAll('#windows-container .opening-input').forEach(windowEl => {
             windows.push({
-                width: parseFloat(windowEl.querySelector('.window-width').value),
-                height: parseFloat(windowEl.querySelector('.window-height').value),
-                distanceFromLeft: parseFloat(windowEl.querySelector('.window-distance').value),
-                distanceFromFloor: parseFloat(windowEl.querySelector('.window-floor-distance').value)
+                width: this.convertToFeet(parseFloat(windowEl.querySelector('.window-width').value)),
+                height: this.convertToFeet(parseFloat(windowEl.querySelector('.window-height').value)),
+                distanceFromLeft: this.convertToFeet(parseFloat(windowEl.querySelector('.window-distance').value)),
+                distanceFromFloor: this.convertToFeet(parseFloat(windowEl.querySelector('.window-floor-distance').value))
             });
         });
 
@@ -194,8 +255,8 @@ class KitchenCalculator {
                         <button class="btn-remove-wall" onclick="calculator.deleteWall(${index})">✕</button>
                     </div>
                     <div class="wall-item-details">
-                        <p>Length: ${wall.length} ft</p>
-                        <p>Height: ${wall.height} ft</p>
+                        <p>Length: ${this.formatDimension(wall.length)}</p>
+                        <p>Height: ${this.formatDimension(wall.height)}</p>
                         <p>Doors: ${wall.doors.length}</p>
                         <p>Windows: ${wall.windows.length}</p>
                     </div>
@@ -221,8 +282,8 @@ class KitchenCalculator {
             availableSpace += (wall.length - occupiedSpace);
         });
 
-        document.getElementById('total-length').textContent = `${totalLength.toFixed(1)} ft`;
-        document.getElementById('available-space').textContent = `${availableSpace.toFixed(1)} ft`;
+        document.getElementById('total-length').textContent = this.formatDimension(totalLength);
+        document.getElementById('available-space').textContent = this.formatDimension(availableSpace);
         
         // Simple cost calculation: $150 per linear foot of cabinet
         const estimatedCost = availableSpace * 150;
@@ -421,7 +482,7 @@ class KitchenCalculator {
             startY - 60, 
             startX + wallWidth, 
             startY - 60,
-            `${wall.length}'`,
+            this.formatDimension(wall.length),
             true
         );
         
@@ -431,7 +492,7 @@ class KitchenCalculator {
             startY + wallHeight + 40,
             startX + wallWidth,
             startY + wallHeight + 40,
-            `${wall.length}'`,
+            this.formatDimension(wall.length),
             true
         );
         
@@ -441,7 +502,7 @@ class KitchenCalculator {
             startY,
             startX + wallWidth + 30,
             startY + wallHeight,
-            `${wall.height}'`,
+            this.formatDimension(wall.height),
             false
         );
         
@@ -461,7 +522,7 @@ class KitchenCalculator {
                     startY - 30,
                     doorX,
                     startY - 30,
-                    `${door.distanceFromLeft.toFixed(1)}"`,
+                    this.formatDimension(door.distanceFromLeft),
                     true
                 );
             }
@@ -472,7 +533,7 @@ class KitchenCalculator {
                 startY - 30,
                 doorX + doorWidth,
                 startY - 30,
-                `${door.width}'`,
+                this.formatDimension(door.width),
                 true
             );
         });
@@ -484,23 +545,33 @@ class KitchenCalculator {
             const windowY = startY + window.distanceFromFloor * this.scale;
             const windowHeight = window.height * this.scale;
             
-            // Window width dimension
+            // Window width dimension (above window)
             this.drawDimensionLine(
                 windowX,
                 windowY - 15,
                 windowX + windowWidth,
                 windowY - 15,
-                `${window.width}'`,
+                this.formatDimension(window.width),
                 true
             );
             
-            // Window height dimension
+            // Window height dimension (right side)
             this.drawDimensionLine(
                 windowX + windowWidth + 15,
                 windowY,
                 windowX + windowWidth + 15,
                 windowY + windowHeight,
-                `${window.height}'`,
+                this.formatDimension(window.height),
+                false
+            );
+            
+            // Window distance from floor (left side)
+            this.drawDimensionLine(
+                windowX - 15,
+                startY + wallHeight,
+                windowX - 15,
+                windowY,
+                this.formatDimension(window.distanceFromFloor),
                 false
             );
         });
@@ -509,26 +580,100 @@ class KitchenCalculator {
     drawLeftoverSpaces(wall, startX, startY, wallWidth, wallHeight) {
         const ctx = this.ctx;
         
-        // Collect all obstacles (doors and windows)
-        const obstacles = [];
+        // Separate obstacles for upper and lower cabinets
+        const upperObstacles = [];
+        const lowerObstacles = [];
         
-        wall.doors.forEach(door => {
-            obstacles.push({
-                start: door.distanceFromLeft,
-                end: door.distanceFromLeft + door.width,
-                type: 'door'
-            });
-        });
-        
+        // Windows affect upper cabinets
         wall.windows.forEach(window => {
-            obstacles.push({
+            upperObstacles.push({
                 start: window.distanceFromLeft,
                 end: window.distanceFromLeft + window.width,
                 type: 'window'
             });
         });
         
-        // Sort by start position
+        // Doors affect lower cabinets
+        wall.doors.forEach(door => {
+            lowerObstacles.push({
+                start: door.distanceFromLeft,
+                end: door.distanceFromLeft + door.width,
+                type: 'door'
+            });
+        });
+        
+        // Calculate upper cabinet spaces (affected by windows only)
+        const upperSpaces = this.calculateSpaces(wall.length, upperObstacles);
+        
+        // Calculate lower cabinet spaces (affected by doors only)
+        const lowerSpaces = this.calculateSpaces(wall.length, lowerObstacles);
+        
+        // Draw upper cabinet area leftover spaces (blue)
+        upperSpaces.forEach(space => {
+            if (space.length > 0.5) { // Only show if space is significant (> 6 inches)
+                const spaceStartX = startX + (space.start * this.scale);
+                const spaceWidth = space.length * this.scale;
+                const centerX = spaceStartX + spaceWidth / 2;
+                
+                const upperY = startY + this.scale * 1.5;
+                const upperHeight = this.scale * 2.5;
+                
+                ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
+                ctx.fillRect(spaceStartX, upperY, spaceWidth, upperHeight);
+                
+                ctx.strokeStyle = '#3498db';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 3]);
+                ctx.strokeRect(spaceStartX, upperY, spaceWidth, upperHeight);
+                ctx.setLineDash([]);
+                
+                // Upper space label
+                ctx.fillStyle = '#2980b9';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.formatDimension(space.length), centerX, upperY + upperHeight / 2);
+            }
+        });
+        
+        // Draw lower cabinet area leftover spaces (green)
+        lowerSpaces.forEach(space => {
+            if (space.length > 0.5) { // Only show if space is significant (> 6 inches)
+                const spaceStartX = startX + (space.start * this.scale);
+                const spaceWidth = space.length * this.scale;
+                const centerX = spaceStartX + spaceWidth / 2;
+                
+                const lowerY = startY + wallHeight - (this.scale * 2.5);
+                const lowerHeight = this.scale * 2.5;
+                
+                ctx.fillStyle = 'rgba(46, 204, 113, 0.1)';
+                ctx.fillRect(spaceStartX, lowerY, spaceWidth, lowerHeight);
+                
+                ctx.strokeStyle = '#27ae60';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 3]);
+                ctx.strokeRect(spaceStartX, lowerY, spaceWidth, lowerHeight);
+                ctx.setLineDash([]);
+                
+                // Lower space label
+                ctx.fillStyle = '#229954';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.formatDimension(space.length), centerX, lowerY + lowerHeight / 2);
+            }
+        });
+        
+        // Add legend text
+        ctx.fillStyle = '#2980b9';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText('Upper Cabinet Space (blocked by windows)', startX, startY - 70);
+        
+        ctx.fillStyle = '#229954';
+        ctx.fillText('Lower Cabinet Space (blocked by doors)', startX, startY - 58);
+    }
+
+    calculateSpaces(wallLength, obstacles) {
+        // Sort obstacles by start position
         obstacles.sort((a, b) => a.start - b.start);
         
         // Calculate leftover spaces
@@ -547,77 +692,15 @@ class KitchenCalculator {
         });
         
         // Add final space
-        if (currentPos < wall.length) {
+        if (currentPos < wallLength) {
             spaces.push({
                 start: currentPos,
-                end: wall.length,
-                length: wall.length - currentPos
+                end: wallLength,
+                length: wallLength - currentPos
             });
         }
         
-        // Draw leftover space annotations on the wall
-        spaces.forEach(space => {
-            if (space.length > 0.5) { // Only show if space is significant (> 6 inches)
-                const spaceStartX = startX + (space.start * this.scale);
-                const spaceWidth = space.length * this.scale;
-                const centerX = spaceStartX + spaceWidth / 2;
-                
-                // Draw upper cabinet area leftover space (light blue box)
-                const upperY = startY + this.scale * 1.5;
-                const upperHeight = this.scale * 2.5;
-                
-                ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
-                ctx.fillRect(spaceStartX, upperY, spaceWidth, upperHeight);
-                
-                ctx.strokeStyle = '#3498db';
-                ctx.lineWidth = 1;
-                ctx.setLineDash([5, 3]);
-                ctx.strokeRect(spaceStartX, upperY, spaceWidth, upperHeight);
-                ctx.setLineDash([]);
-                
-                // Upper space label
-                ctx.fillStyle = '#2980b9';
-                ctx.font = 'bold 11px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(`${space.length.toFixed(1)}'`, centerX, upperY + upperHeight / 2);
-                
-                // Draw lower cabinet area leftover space (light green box)
-                const lowerY = startY + wallHeight - (this.scale * 2.5);
-                const lowerHeight = this.scale * 2.5;
-                
-                // Check if there's a door blocking this lower space
-                const hasDoorHere = wall.doors.some(door => 
-                    door.distanceFromLeft < space.end && 
-                    (door.distanceFromLeft + door.width) > space.start
-                );
-                
-                if (!hasDoorHere) {
-                    ctx.fillStyle = 'rgba(46, 204, 113, 0.1)';
-                    ctx.fillRect(spaceStartX, lowerY, spaceWidth, lowerHeight);
-                    
-                    ctx.strokeStyle = '#27ae60';
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([5, 3]);
-                    ctx.strokeRect(spaceStartX, lowerY, spaceWidth, lowerHeight);
-                    ctx.setLineDash([]);
-                    
-                    // Lower space label
-                    ctx.fillStyle = '#229954';
-                    ctx.font = 'bold 11px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(`${space.length.toFixed(1)}'`, centerX, lowerY + lowerHeight / 2);
-                }
-            }
-        });
-        
-        // Add legend text
-        ctx.fillStyle = '#2980b9';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText('Upper Cabinet Space', startX, startY - 70);
-        
-        ctx.fillStyle = '#229954';
-        ctx.fillText('Lower Cabinet Space', startX, startY - 58);
+        return spaces;
     }
 
     drawDimensionLine(x1, y1, x2, y2, label, isHorizontal) {
