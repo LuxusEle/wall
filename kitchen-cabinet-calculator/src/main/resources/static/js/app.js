@@ -207,16 +207,26 @@ class KitchenCalculator {
             });
         });
 
-        const wallLabel = this.wallLabels[this.walls.length];
-        const wall = {
-            label: wallLabel,
-            length,
-            height,
-            doors,
-            windows
-        };
+        if (this.currentWallIndex !== null) {
+            // Editing existing wall
+            const wall = this.walls[this.currentWallIndex];
+            wall.length = length;
+            wall.height = height;
+            wall.doors = doors;
+            wall.windows = windows;
+        } else {
+            // Adding new wall
+            const wallLabel = this.wallLabels[this.walls.length];
+            const wall = {
+                label: wallLabel,
+                length,
+                height,
+                doors,
+                windows
+            };
+            this.walls.push(wall);
+        }
 
-        this.walls.push(wall);
         this.hideWallForm();
         this.updateDisplay();
     }
@@ -230,6 +240,45 @@ class KitchenCalculator {
             });
             this.updateDisplay();
         }
+    }
+
+    editWall(index) {
+        const wall = this.walls[index];
+        this.currentWallIndex = index;
+        
+        // Show form
+        const formSection = document.getElementById('wall-form-section');
+        document.getElementById('wall-form-title').textContent = `Edit Wall ${wall.label}`;
+        
+        // Populate form with existing data
+        document.getElementById('wall-length').value = this.convertFromFeet(wall.length).toFixed(2);
+        document.getElementById('wall-height').value = this.convertFromFeet(wall.height).toFixed(2);
+        
+        // Clear and populate doors
+        const doorsContainer = document.getElementById('doors-container');
+        doorsContainer.innerHTML = '';
+        wall.doors.forEach(door => {
+            this.addDoorInput();
+            const doorEl = doorsContainer.lastElementChild;
+            doorEl.querySelector('.door-width').value = this.convertFromFeet(door.width).toFixed(2);
+            doorEl.querySelector('.door-height').value = this.convertFromFeet(door.height).toFixed(2);
+            doorEl.querySelector('.door-distance').value = this.convertFromFeet(door.distanceFromLeft).toFixed(2);
+        });
+        
+        // Clear and populate windows
+        const windowsContainer = document.getElementById('windows-container');
+        windowsContainer.innerHTML = '';
+        wall.windows.forEach(window => {
+            this.addWindowInput();
+            const windowEl = windowsContainer.lastElementChild;
+            windowEl.querySelector('.window-width').value = this.convertFromFeet(window.width).toFixed(2);
+            windowEl.querySelector('.window-height').value = this.convertFromFeet(window.height).toFixed(2);
+            windowEl.querySelector('.window-distance').value = this.convertFromFeet(window.distanceFromLeft).toFixed(2);
+            windowEl.querySelector('.window-floor-distance').value = this.convertFromFeet(window.distanceFromFloor).toFixed(2);
+        });
+        
+        formSection.style.display = 'block';
+        formSection.scrollIntoView({ behavior: 'smooth' });
     }
 
     updateDisplay() {
@@ -252,7 +301,10 @@ class KitchenCalculator {
                 <div class="wall-item">
                     <div class="wall-item-header">
                         <h4>Wall ${wall.label}</h4>
-                        <button class="btn-remove-wall" onclick="calculator.deleteWall(${index})">✕</button>
+                        <div>
+                            <button class="btn-edit-wall" onclick="calculator.editWall(${index})" title="Edit Wall">✏️</button>
+                            <button class="btn-remove-wall" onclick="calculator.deleteWall(${index})" title="Delete Wall">✕</button>
+                        </div>
                     </div>
                     <div class="wall-item-details">
                         <p>Length: ${this.formatDimension(wall.length)}</p>
@@ -839,17 +891,49 @@ class KitchenCalculator {
             this.drawArrow(x2, y2, 0, -1, arrowSize);
         }
         
-        // Label
+        // Label with white background to prevent strikethrough
         ctx.font = 'bold 10px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
+        const midX = (x1 + x2) / 2;
+        const midY = (y1 + y2) / 2;
+        
+        // Measure text width for background
+        const textMetrics = ctx.measureText(label);
+        const textWidth = textMetrics.width;
+        const textHeight = 12;
+        const padding = 3;
+        
         if (isHorizontal) {
-            ctx.fillText(label, (x1 + x2) / 2, y1 - 8);
+            // Draw white background rectangle for text
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(
+                midX - textWidth / 2 - padding,
+                y1 - textHeight / 2 - padding,
+                textWidth + padding * 2,
+                textHeight + padding * 2
+            );
+            
+            // Draw text
+            ctx.fillStyle = '#000000';
+            ctx.fillText(label, midX, y1);
         } else {
             ctx.save();
-            ctx.translate((x1 + x2) / 2, (y1 + y2) / 2);
+            ctx.translate(midX, midY);
             ctx.rotate(-Math.PI / 2);
+            
+            // Draw white background rectangle for text
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(
+                -textWidth / 2 - padding,
+                -textHeight / 2 - padding,
+                textWidth + padding * 2,
+                textHeight + padding * 2
+            );
+            
+            // Draw text
+            ctx.fillStyle = '#000000';
             ctx.fillText(label, 0, 0);
             ctx.restore();
         }

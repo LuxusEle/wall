@@ -291,7 +291,8 @@ header h1 {
 }
 
 .btn-remove,
-.btn-remove-wall {
+.btn-remove-wall,
+.btn-edit-wall {
     background: #e74c3c;
     color: white;
     border: none;
@@ -301,6 +302,17 @@ header h1 {
     cursor: pointer;
     font-size: 1.2em;
     transition: all 0.3s ease;
+    margin-left: 5px;
+}
+
+.btn-edit-wall {
+    background: #3498db;
+    font-size: 1em;
+}
+
+.btn-edit-wall:hover {
+    background: #2980b9;
+    transform: scale(1.1);
 }
 
 .btn-remove:hover,
