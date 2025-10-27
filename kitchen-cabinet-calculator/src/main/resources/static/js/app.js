@@ -1386,12 +1386,16 @@ class KitchenCalculator {
         if (!this.placementCtx || this.selectedWallForPlacement === null) {
             // Show message
             const overlay = document.getElementById('canvas-message');
-            if (overlay) overlay.style.display = 'flex';
+            if (overlay) {
+                overlay.classList.remove('hidden');
+            }
             return;
         }
 
         const overlay = document.getElementById('canvas-message');
-        if (overlay) overlay.style.display = 'none';
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
 
         const wall = this.walls[this.selectedWallForPlacement];
         const ctx = this.placementCtx;
