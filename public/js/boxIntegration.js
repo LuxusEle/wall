@@ -2,55 +2,85 @@
 // These methods extend the KitchenCalculator class
 
 KitchenCalculator.prototype.initializeBoxBuilder = function() {
+    console.log('=== initializeBoxBuilder called ===');
+    
     // Initialize BoxBuilder and BoxViewer
     if (typeof BoxBuilder !== 'undefined') {
         this.boxBuilder = new BoxBuilder();
-        console.log('BoxBuilder initialized');
+        console.log('✅ BoxBuilder initialized');
+    } else {
+        console.error('❌ BoxBuilder class not found');
     }
 
     const boxCanvas = document.getElementById('box-canvas');
     if (boxCanvas && typeof BoxViewer !== 'undefined') {
         this.boxViewer = new BoxViewer('box-canvas');
-        console.log('BoxViewer initialized');
+        console.log('✅ BoxViewer initialized');
+    } else {
+        console.error('❌ BoxViewer not found or canvas missing');
+    }
+
+    // Check if CABINET_SYSTEMS is loaded
+    console.log('CABINET_SYSTEMS loaded:', typeof window.CABINET_SYSTEMS !== 'undefined');
+    if (typeof window.CABINET_SYSTEMS !== 'undefined') {
+        console.log('CABINET_SYSTEMS keys:', Object.keys(window.CABINET_SYSTEMS));
     }
 
     // Populate cabinet dropdown
+    console.log('Calling populateBoxCabinetSelector...');
     this.populateBoxCabinetSelector();
 };
 
 KitchenCalculator.prototype.populateBoxCabinetSelector = function() {
+    console.log('=== populateBoxCabinetSelector called ===');
+    
     const select = document.getElementById('box-cabinet-select');
     if (!select) {
-        console.error('Box cabinet select element not found');
+        console.error('❌ Box cabinet select element not found');
         return;
+    } else {
+        console.log('✅ Dropdown element found:', select);
     }
     
     if (typeof window.CABINET_SYSTEMS === 'undefined') {
-        console.error('CABINET_SYSTEMS not loaded');
+        console.error('❌ CABINET_SYSTEMS not loaded');
         return;
+    } else {
+        console.log('✅ CABINET_SYSTEMS found');
     }
 
-    console.log('Populating box cabinet selector...');
+    console.log('Starting to populate dropdown...');
     
     // Clear existing options except first
     select.innerHTML = '<option value="">-- Choose a Cabinet --</option>';
+    
+    let totalCount = 0;
 
     // Get all cabinets from all categories
-    Object.values(window.CABINET_SYSTEMS).forEach(system => {
+    Object.entries(window.CABINET_SYSTEMS).forEach(([systemKey, system]) => {
+        console.log(`Processing system: ${systemKey}`, system);
+        
         Object.entries(system).forEach(([category, cabinets]) => {
             // Skip non-array entries (like 'name', 'standard', 'unit')
-            if (!Array.isArray(cabinets)) return;
+            if (!Array.isArray(cabinets)) {
+                console.log(`  Skipping ${category} (not an array)`);
+                return;
+            }
+            
+            console.log(`  Processing ${category} with ${cabinets.length} cabinets`);
             
             cabinets.forEach(cabinet => {
                 const option = document.createElement('option');
                 option.value = cabinet.id;
                 option.textContent = `${cabinet.name} (${cabinet.width}×${cabinet.height}×${cabinet.depth}mm)`;
                 select.appendChild(option);
+                totalCount++;
             });
         });
     });
     
-    console.log('Cabinet selector populated with', select.options.length - 1, 'cabinets');
+    console.log(`✅ Cabinet selector populated with ${totalCount} cabinets`);
+    console.log('Dropdown now has', select.options.length, 'total options');
 };
 
 KitchenCalculator.prototype.selectBoxCabinet = function(cabinetId) {
