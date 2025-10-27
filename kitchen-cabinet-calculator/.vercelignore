@@ -1,0 +1,7 @@
+src/main/java/
+src/test/
+pom.xml
+target/
+.git/
+.gitignore
+README.md

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Cabinet Cost Calculator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Kitchen Cabinet Cost Calculator</h1>
+            <p class="subtitle">Professional Wall & Cabinet Planning System</p>
+        </header>
+
+        <div class="main-layout">
+            <!-- Left Panel: Input Controls -->
+            <div class="input-panel">
+                <div class="panel-section">
+                    <h2>Wall Configuration</h2>
+                    <div class="wall-list" id="wall-list">
+                        <p class="empty-state">No walls added yet. Click "Add New Wall" to begin.</p>
+                    </div>
+                    <button type="button" class="btn-primary" id="add-wall-btn">
+                        <span>➕</span> Add New Wall
+                    </button>
+                </div>
+
+                <!-- Wall Input Form (Hidden by default) -->
+                <div class="panel-section" id="wall-form-section" style="display: none;">
+                    <h3 id="wall-form-title">Configure Wall A</h3>
+                    <form id="wall-form">
+                        <div class="form-group">
+                            <label for="wall-length">Wall Length (ft):</label>
+                            <input type="number" id="wall-length" step="0.1" min="1" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="wall-height">Wall Height (ft):</label>
+                            <input type="number" id="wall-height" step="0.1" min="1" value="8" required>
+                        </div>
+
+                        <h4>Doors</h4>
+                        <div id="doors-container"></div>
+                        <button type="button" class="btn-secondary" id="add-door-btn">+ Add Door</button>
+
+                        <h4>Windows</h4>
+                        <div id="windows-container"></div>
+                        <button type="button" class="btn-secondary" id="add-window-btn">+ Add Window</button>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Save Wall</button>
+                            <button type="button" class="btn-cancel" id="cancel-wall-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Cost Summary -->
+                <div class="panel-section">
+                    <h2>Cost Summary</h2>
+                    <div class="cost-details">
+                        <div class="cost-row">
+                            <span>Total Wall Length:</span>
+                            <span id="total-length">0 ft</span>
+                        </div>
+                        <div class="cost-row">
+                            <span>Available Cabinet Space:</span>
+                            <span id="available-space">0 ft</span>
+                        </div>
+                        <div class="cost-row total">
+                            <span>Estimated Cost:</span>
+                            <span id="total-cost">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: 2D Elevation View -->
+            <div class="elevation-panel">
+                <div class="panel-section">
+                    <h2>2D Elevation Plan</h2>
+                    <div class="elevation-controls">
+                        <button type="button" class="btn-small" id="zoom-in-btn">🔍+</button>
+                        <button type="button" class="btn-small" id="zoom-out-btn">🔍-</button>
+                        <button type="button" class="btn-small" id="reset-view-btn">Reset View</button>
+                    </div>
+                    <div id="elevation-plan" class="elevation-container">
+                        <canvas id="elevation-canvas"></canvas>
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #34495e;"></div>
+                            <span>Wall</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #8B4513;"></div>
+                            <span>Door</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #87CEEB;"></div>
+                            <span>Window</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Door/Window Input Template -->
+    <template id="door-template">
+        <div class="opening-input">
+            <div class="opening-header">
+                <span class="opening-label">Door</span>
+                <button type="button" class="btn-remove">✕</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group-inline">
+                    <label>Width (ft):</label>
+                    <input type="number" class="door-width" step="0.1" min="0.1" value="3" required>
+                </div>
+                <div class="form-group-inline">
+                    <label>Height (ft):</label>
+                    <input type="number" class="door-height" step="0.1" min="0.1" value="7" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Distance from Left Edge (ft):</label>
+                <input type="number" class="door-distance" step="0.1" min="0" value="0" required>
+            </div>
+        </div>
+    </template>
+
+    <template id="window-template">
+        <div class="opening-input">
+            <div class="opening-header">
+                <span class="opening-label">Window</span>
+                <button type="button" class="btn-remove">✕</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group-inline">
+                    <label>Width (ft):</label>
+                    <input type="number" class="window-width" step="0.1" min="0.1" value="3" required>
+                </div>
+                <div class="form-group-inline">
+                    <label>Height (ft):</label>
+                    <input type="number" class="window-height" step="0.1" min="0.1" value="4" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Distance from Left Edge (ft):</label>
+                <input type="number" class="window-distance" step="0.1" min="0" value="0" required>
+            </div>
+            <div class="form-group">
+                <label>Distance from Floor (ft):</label>
+                <input type="number" class="window-floor-distance" step="0.1" min="0" value="3" required>
+            </div>
+        </div>
+    </template>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
