@@ -101,6 +101,14 @@ class KitchenCalculator {
             });
         }
 
+        // Cabinet search box
+        const cabinetSearch = document.getElementById('cabinet-search');
+        if (cabinetSearch) {
+            cabinetSearch.addEventListener('input', (e) => {
+                this.filterCabinets(e.target.value);
+            });
+        }
+
         // Tab navigation
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -1113,6 +1121,8 @@ class KitchenCalculator {
         
         // Set cabinet data
         item.dataset.cabinetId = cabinet.id;
+        item.dataset.cabinetName = cabinet.name.toLowerCase(); // For search
+        item.dataset.cabinetCode = cabinet.code.toLowerCase(); // For search
         item.querySelector('.cabinet-name').textContent = cabinet.name;
         item.querySelector('.cabinet-code').textContent = cabinet.code;
         item.querySelector('.cabinet-width').textContent = cabinet.width;
@@ -1133,6 +1143,8 @@ class KitchenCalculator {
                 this.selectedCabinets = this.selectedCabinets.filter(c => c.id !== cabinet.id);
             }
             this.updatePlaceButton();
+            // Show mock placeholders when ticking
+            this.showMockPlaceholders();
         });
         
         // Edit button
@@ -1149,6 +1161,52 @@ class KitchenCalculator {
         if (placeBtn) {
             placeBtn.disabled = this.selectedCabinets.length === 0 || this.selectedWallForPlacement === null;
         }
+    }
+
+    // Filter cabinets by search term
+    filterCabinets(searchTerm) {
+        const term = searchTerm.toLowerCase().trim();
+        const items = document.querySelectorAll('.cabinet-selection-item');
+        
+        items.forEach(item => {
+            const name = item.dataset.cabinetName || '';
+            const code = item.dataset.cabinetCode || '';
+            
+            if (name.includes(term) || code.includes(term)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Also hide/show category headers if all items are hidden
+        const categoryHeaders = document.querySelectorAll('.cabinet-selection-list h4');
+        categoryHeaders.forEach(header => {
+            let nextElement = header.nextElementSibling;
+            let hasVisibleItem = false;
+            
+            while (nextElement && !nextElement.tagName.match(/^H[1-6]$/)) {
+                if (nextElement.classList.contains('cabinet-selection-item') && 
+                    nextElement.style.display !== 'none') {
+                    hasVisibleItem = true;
+                    break;
+                }
+                nextElement = nextElement.nextElementSibling;
+            }
+            
+            header.style.display = hasVisibleItem ? 'block' : 'none';
+        });
+    }
+
+    // Show mock placeholders on canvas when selecting cabinets
+    showMockPlaceholders() {
+        if (this.selectedWallForPlacement === null) {
+            // Just update button, no canvas to show
+            return;
+        }
+        
+        // Redraw the canvas with mock placeholders
+        this.drawPlacementCanvas();
     }
 
     // Step 2: Edit cabinet modal
@@ -1375,6 +1433,9 @@ class KitchenCalculator {
 
         // Draw placed cabinets
         this.drawPlacedCabinetsOnCanvas(startX, startY, wallHeight);
+        
+        // Draw mock placeholders for selected cabinets (not yet placed)
+        this.drawMockPlaceholders(startX, startY, wallHeight);
     }
 
     drawPlacedCabinetsOnCanvas(wallStartX, wallStartY, wallHeight) {
@@ -1425,6 +1486,78 @@ class KitchenCalculator {
                 height: cabinetHeight
             };
         });
+    }
+
+    // Draw mock placeholders for selected (but not yet placed) cabinets
+    drawMockPlaceholders(wallStartX, wallStartY, wallHeight) {
+        if (this.selectedCabinets.length === 0) return;
+
+        const ctx = this.placementCtx;
+        const wall = this.walls[this.selectedWallForPlacement];
+        
+        let currentX = 0; // Start from left edge
+
+        this.selectedCabinets.forEach((cabinet, index) => {
+            const widthInFeet = this.parseDimensionToFeet(cabinet.width);
+            const heightInFeet = this.parseDimensionToFeet(cabinet.height);
+
+            // Check if it fits
+            if (currentX + widthInFeet > wall.length) {
+                return; // Skip if doesn't fit
+            }
+
+            const cabinetX = wallStartX + currentX * this.scale;
+            let cabinetY;
+            
+            // Determine Y position based on cabinet type
+            if (cabinet.type === 'wall') {
+                cabinetY = wallStartY + 20; // Upper cabinet
+            } else if (cabinet.type === 'tall') {
+                cabinetY = wallStartY; // Floor to ceiling
+            } else {
+                cabinetY = wallStartY + wallHeight - heightInFeet * this.scale; // Base cabinet
+            }
+
+            const cabinetWidth = widthInFeet * this.scale;
+            const cabinetHeight = heightInFeet * this.scale;
+
+            // Draw mock placeholder with dashed outline and semi-transparent
+            ctx.save();
+            ctx.globalAlpha = 0.5;
+            ctx.fillStyle = '#f39c12'; // Orange for mock
+            ctx.fillRect(cabinetX, cabinetY, cabinetWidth, cabinetHeight);
+            
+            // Draw dashed border
+            ctx.globalAlpha = 1.0;
+            ctx.strokeStyle = '#e67e22';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(cabinetX, cabinetY, cabinetWidth, cabinetHeight);
+            ctx.setLineDash([]); // Reset dash
+            
+            // Draw label
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('PREVIEW', cabinetX + cabinetWidth / 2, cabinetY + cabinetHeight / 2 - 6);
+            ctx.font = '10px Arial';
+            ctx.fillText(cabinet.code, cabinetX + cabinetWidth / 2, cabinetY + cabinetHeight / 2 + 6);
+            
+            ctx.restore();
+
+            currentX += widthInFeet + 0.05; // Small gap
+        });
+
+        // Add instruction text if mock placeholders are shown
+        if (this.selectedCabinets.length > 0) {
+            ctx.save();
+            ctx.fillStyle = '#e67e22';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('👆 PREVIEW - Click "Place Selected Cabinets" to confirm', 
+                this.placementCanvas.width / 2, wallStartY + wallHeight + 40);
+            ctx.restore();
+        }
     }
 
     // Step 6: Drag and drop with snapping
