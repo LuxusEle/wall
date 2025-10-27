@@ -20,14 +20,27 @@ KitchenCalculator.prototype.initializeBoxBuilder = function() {
 
 KitchenCalculator.prototype.populateBoxCabinetSelector = function() {
     const select = document.getElementById('box-cabinet-select');
-    if (!select || typeof window.CABINET_DATA === 'undefined') return;
+    if (!select) {
+        console.error('Box cabinet select element not found');
+        return;
+    }
+    
+    if (typeof window.CABINET_SYSTEMS === 'undefined') {
+        console.error('CABINET_SYSTEMS not loaded');
+        return;
+    }
 
+    console.log('Populating box cabinet selector...');
+    
     // Clear existing options except first
     select.innerHTML = '<option value="">-- Choose a Cabinet --</option>';
 
     // Get all cabinets from all categories
-    Object.values(window.CABINET_DATA).forEach(system => {
+    Object.values(window.CABINET_SYSTEMS).forEach(system => {
         Object.entries(system).forEach(([category, cabinets]) => {
+            // Skip non-array entries (like 'name', 'standard', 'unit')
+            if (!Array.isArray(cabinets)) return;
+            
             cabinets.forEach(cabinet => {
                 const option = document.createElement('option');
                 option.value = cabinet.id;
@@ -36,9 +49,13 @@ KitchenCalculator.prototype.populateBoxCabinetSelector = function() {
             });
         });
     });
+    
+    console.log('Cabinet selector populated with', select.options.length - 1, 'cabinets');
 };
 
 KitchenCalculator.prototype.selectBoxCabinet = function(cabinetId) {
+    console.log('selectBoxCabinet called with:', cabinetId);
+    
     if (!cabinetId) {
         // Hide all panels
         document.getElementById('box-parameters').style.display = 'none';
@@ -51,10 +68,16 @@ KitchenCalculator.prototype.selectBoxCabinet = function(cabinetId) {
 
     // Find cabinet in data
     let cabinet = null;
-    Object.values(window.CABINET_DATA).forEach(system => {
-        Object.values(system).forEach(cabinets => {
-            const found = cabinets.find(c => c.id === cabinetId);
-            if (found) cabinet = found;
+    Object.values(window.CABINET_SYSTEMS).forEach(system => {
+        Object.entries(system).forEach(([key, value]) => {
+            // Skip non-array entries
+            if (!Array.isArray(value)) return;
+            
+            const found = value.find(c => c.id === cabinetId);
+            if (found) {
+                cabinet = found;
+                console.log('Cabinet found:', cabinet);
+            }
         });
     });
 
@@ -73,6 +96,8 @@ KitchenCalculator.prototype.selectBoxCabinet = function(cabinetId) {
 
     // Store current cabinet
     this.selectedBoxCabinet = cabinet;
+    
+    console.log('Cabinet selected, parameters displayed');
 };
 
 KitchenCalculator.prototype.updateBoxParameters = function() {
