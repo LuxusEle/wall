@@ -664,7 +664,7 @@ class KitchenCalculator {
         const upperObstacles = [];
         const lowerObstacles = [];
         
-        // Windows affect upper cabinets
+        // Both doors AND windows affect upper cabinets
         wall.windows.forEach(window => {
             upperObstacles.push({
                 start: window.distanceFromLeft,
@@ -673,7 +673,15 @@ class KitchenCalculator {
             });
         });
         
-        // Doors affect lower cabinets
+        wall.doors.forEach(door => {
+            upperObstacles.push({
+                start: door.distanceFromLeft,
+                end: door.distanceFromLeft + door.width,
+                type: 'door'
+            });
+        });
+        
+        // Only doors affect lower cabinets
         wall.doors.forEach(door => {
             lowerObstacles.push({
                 start: door.distanceFromLeft,
@@ -682,7 +690,7 @@ class KitchenCalculator {
             });
         });
         
-        // Calculate upper cabinet spaces (affected by windows only)
+        // Calculate upper cabinet spaces (affected by both doors and windows)
         const upperSpaces = this.calculateSpaces(wall.length, upperObstacles);
         
         // Calculate lower cabinet spaces (affected by doors only)
