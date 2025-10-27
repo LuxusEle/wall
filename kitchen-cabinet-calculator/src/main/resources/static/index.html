@@ -33,7 +33,6 @@
         <!-- Tab Navigation -->
         <div class="tab-navigation">
             <button class="tab active" data-tab="walls">📐 Walls</button>
-            <button class="tab" data-tab="cabinets">🗄️ Cabinet Library</button>
             <button class="tab" data-tab="placement">🎯 Place Cabinets</button>
         </div>
 
@@ -133,75 +132,163 @@
         </div>
         </div>
 
-        <!-- Cabinet Library Tab -->
-        <div class="tab-content" id="cabinets-tab">
-            <div class="cabinet-library">
-                <div class="cabinet-library-header">
-                    <h2>Cabinet Library - <span id="current-system">European Frameless (Metric)</span></h2>
-                    <p class="system-info">Standard sizes based on <span id="system-standard">600mm module</span></p>
-                </div>
-
-                <!-- Cabinet Categories -->
-                <div class="cabinet-categories">
-                    <!-- Base Cabinets -->
-                    <div class="category-section">
-                        <h3>🔲 Base Cabinets</h3>
-                        <div class="cabinet-grid" id="base-cabinets-grid"></div>
-                    </div>
-
-                    <!-- Wall Cabinets -->
-                    <div class="category-section">
-                        <h3>🔳 Wall Cabinets</h3>
-                        <div class="cabinet-grid" id="wall-cabinets-grid"></div>
-                    </div>
-
-                    <!-- Tall Cabinets -->
-                    <div class="category-section">
-                        <h3>📏 Tall Cabinets</h3>
-                        <div class="cabinet-grid" id="tall-cabinets-grid"></div>
-                    </div>
-
-                    <!-- Specialty Cabinets -->
-                    <div class="category-section">
-                        <h3>⭐ Specialty Units</h3>
-                        <div class="cabinet-grid" id="specialty-cabinets-grid"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Placement Tab -->
         <div class="tab-content" id="placement-tab">
             <div class="placement-layout">
+                <!-- Left Sidebar: Cabinet Selection -->
                 <div class="placement-sidebar">
-                    <h2>📦 Placed Cabinets</h2>
-                    <div class="placed-cabinets-list" id="placed-cabinets-list">
-                        <p class="empty-state">No cabinets placed yet</p>
-                    </div>
-                    <div class="placement-actions">
-                        <button type="button" class="btn-primary" id="auto-fill-btn">🤖 Auto-Fill Walls</button>
-                        <button type="button" class="btn-secondary" id="clear-cabinets-btn">🗑️ Clear All</button>
-                    </div>
-                </div>
-                <div class="placement-view">
-                    <div class="placement-controls">
-                        <h2>Select Wall to Place Cabinets:</h2>
-                        <select id="placement-wall-select">
-                            <option value="">-- Select Wall --</option>
+                    <h2>📦 Available Cabinets</h2>
+                    <p class="subtitle-small">Select cabinets to place on wall</p>
+                    
+                    <!-- Cabinet System Selector -->
+                    <div class="form-group">
+                        <label for="placement-cabinet-system">Cabinet System:</label>
+                        <select id="placement-cabinet-system" class="form-control">
+                            <option value="european-metric">European Frameless (Metric - 600mm)</option>
+                            <option value="european-imperial">European Frameless (Imperial - 24")</option>
                         </select>
                     </div>
+
+                    <!-- Cabinet Selection List -->
+                    <div class="cabinet-selection-list" id="cabinet-selection-list">
+                        <!-- Dynamically populated -->
+                    </div>
+
+                    <div class="placement-actions">
+                        <button type="button" class="btn-primary" id="place-selected-btn" disabled>
+                            � Place Selected Cabinets
+                        </button>
+                        <button type="button" class="btn-secondary auto-fill-btn" id="auto-fill-btn">
+                            🤖 Auto-Fill Spaces
+                        </button>
+                        <button type="button" class="btn-danger" id="clear-placement-btn">
+                            🗑️ Clear All Cabinets
+                        </button>
+                    </div>
+
+                    <!-- Placed Cabinets Summary -->
+                    <div class="placed-summary">
+                        <h3>Placed Cabinets</h3>
+                        <div id="placed-cabinets-summary">
+                            <p class="empty-state">No cabinets placed yet</p>
+                        </div>
+                        <div class="cost-summary">
+                            <h4>Total Cost: $<span id="total-cost">0.00</span></h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Area: Canvas View -->
+                <div class="placement-canvas-area">
+                    <div class="placement-header">
+                        <h2>� Wall View</h2>
+                        <div class="wall-selector">
+                            <label>Select Wall:</label>
+                            <select id="placement-wall-select" class="form-control">
+                                <option value="">-- Choose a Wall --</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="placement-canvas-container">
                         <canvas id="placement-canvas"></canvas>
+                        <div class="canvas-overlay" id="canvas-message">
+                            <p>📋 Add walls in "Walls" tab first, then select a wall above to start placing cabinets</p>
+                        </div>
                     </div>
-                    <div class="placement-info">
-                        <p>💡 Tip: Click on a cabinet from the Cabinet Library, then click on the wall to place it</p>
+
+                    <div class="placement-instructions">
+                        <h4>🎯 How to Place Cabinets:</h4>
+                        <ol>
+                            <li>✅ Select cabinets from the left panel (check boxes)</li>
+                            <li>✏️ Edit cabinet dimensions if needed (click edit button)</li>
+                            <li>📍 Click "Place Selected Cabinets" - they'll appear on the wall</li>
+                            <li>🖱️ Drag cabinets to reposition (they snap to edges automatically)</li>
+                            <li>🤖 Use "Auto-Fill" to fill remaining spaces intelligently</li>
+                        </ol>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Cabinet Card Template -->
+    <!-- Cabinet Selection Item Template -->
+    <template id="cabinet-selection-template">
+        <div class="cabinet-selection-item">
+            <div class="cabinet-checkbox">
+                <input type="checkbox" class="cabinet-select-check">
+            </div>
+            <div class="cabinet-details">
+                <h4 class="cabinet-name"></h4>
+                <p class="cabinet-code"></p>
+                <div class="cabinet-dimensions">
+                    <span class="cabinet-width"></span> × 
+                    <span class="cabinet-height"></span> × 
+                    <span class="cabinet-depth"></span>
+                </div>
+                <p class="cabinet-price"></p>
+            </div>
+            <div class="cabinet-actions">
+                <button class="btn-edit" title="Edit dimensions">✏️</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Cabinet Edit Modal -->
+    <div id="cabinet-edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Cabinet Dimensions</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="cabinet-edit-form">
+                    <input type="hidden" id="edit-cabinet-id">
+                    <div class="form-group">
+                        <label>Cabinet Name:</label>
+                        <p id="edit-cabinet-name" class="form-value"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cabinet-width">Width:</label>
+                        <input type="number" id="edit-cabinet-width" class="form-control" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cabinet-height">Height:</label>
+                        <input type="number" id="edit-cabinet-height" class="form-control" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cabinet-depth">Depth:</label>
+                        <input type="number" id="edit-cabinet-depth" class="form-control" step="0.1" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">💾 Save Changes</button>
+                        <button type="button" class="btn-secondary modal-cancel">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wall Card Template -->
+    <template id="wall-card-template">
+        <div class="wall-card">
+            <div class="wall-header">
+                <h3></h3>
+                <div class="wall-actions">
+                    <button class="btn-edit-wall">✏️ Edit</button>
+                    <button class="btn-delete-wall">🗑️ Delete</button>
+                </div>
+            </div>
+            <div class="wall-details">
+                <p><strong>Length:</strong> <span class="wall-length"></span></p>
+                <p><strong>Height:</strong> <span class="wall-height"></span></p>
+                <p><strong>Doors:</strong> <span class="wall-doors"></span></p>
+                <p><strong>Windows:</strong> <span class="wall-windows"></span></p>
+            </div>
+        </div>
+    </template>
+
+    <!-- Cabinet Card Template (OLD - keeping for reference) -->
     <template id="cabinet-card-template">
         <div class="cabinet-card">
             <div class="cabinet-icon"></div>

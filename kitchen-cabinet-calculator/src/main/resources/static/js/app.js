@@ -10,10 +10,13 @@ class KitchenCalculator {
         this.currentUnit = 'feet'; // Default unit
         this.unitSymbol = 'ft';
         this.currentCabinetSystem = 'european-metric'; // Default cabinet system
-        this.selectedCabinet = null; // Currently selected cabinet from library
-        this.placedCabinets = []; // Cabinets placed on walls
+        this.selectedCabinets = []; // Cabinets selected for placement (checkbox selection)
+        this.placedCabinets = []; // Cabinets actually placed on walls  
         this.placementCanvas = document.getElementById('placement-canvas');
         this.placementCtx = this.placementCanvas ? this.placementCanvas.getContext('2d') : null;
+        this.selectedWallForPlacement = null; // Wall selected in placement tab
+        this.draggedCabinet = null; // Cabinet being dragged
+        this.dragOffset = { x: 0, y: 0 };
         
         this.init();
     }
@@ -21,7 +24,6 @@ class KitchenCalculator {
     init() {
         this.setupCanvas();
         this.setupEventListeners();
-        this.loadCabinetLibrary();
         this.updateDisplay();
     }
 
@@ -90,13 +92,12 @@ class KitchenCalculator {
             this.updateDisplay();
         });
 
-        // Cabinet system selector
-        const cabinetSystemSelect = document.getElementById('cabinet-system-select');
-        if (cabinetSystemSelect) {
-            cabinetSystemSelect.addEventListener('change', (e) => {
+        // Cabinet system selector in placement tab
+        const placementCabinetSystem = document.getElementById('placement-cabinet-system');
+        if (placementCabinetSystem) {
+            placementCabinetSystem.addEventListener('change', (e) => {
                 this.currentCabinetSystem = e.target.value;
-                this.loadCabinetLibrary();
-                this.selectedCabinet = null;
+                this.loadCabinetSelectionList();
             });
         }
 
@@ -151,19 +152,44 @@ class KitchenCalculator {
             this.drawElevation();
         });
 
-        // Placement actions
-        const autoFillBtn = document.getElementById('auto-fill-btn');
-        if (autoFillBtn) {
-            autoFillBtn.addEventListener('click', () => {
-                this.autoFillCabinets();
+        // PLACEMENT: Wall selection
+        const placementWallSelect = document.getElementById('placement-wall-select');
+        if (placementWallSelect) {
+            placementWallSelect.addEventListener('change', (e) => {
+                this.selectedWallForPlacement = e.target.value ? parseInt(e.target.value) : null;
+                this.drawPlacementCanvas();
             });
         }
 
+        // PLACEMENT: Place selected cabinets button
+        const placeSelectedBtn = document.getElementById('place-selected-btn');
+        if (placeSelectedBtn) {
+            placeSelectedBtn.addEventListener('click', () => {
+                this.placeSelectedCabinets();
+            });
+        }
+
+        // PLACEMENT: Auto-fill button
+        const autoFillBtn = document.getElementById('auto-fill-btn');
+        if (autoFillBtn) {
+            autoFillBtn.addEventListener('click', () => {
+                this.autoFillSpaces();
+            });
+        }
+
+        // PLACEMENT: Clear all cabinets
         const clearPlacementBtn = document.getElementById('clear-placement-btn');
         if (clearPlacementBtn) {
             clearPlacementBtn.addEventListener('click', () => {
-                this.clearPlacement();
+                this.clearAllCabinets();
             });
+        }
+
+        // PLACEMENT: Canvas mouse events for dragging
+        if (this.placementCanvas) {
+            this.placementCanvas.addEventListener('mousedown', (e) => this.handleCanvasMouseDown(e));
+            this.placementCanvas.addEventListener('mousemove', (e) => this.handleCanvasMouseMove(e));
+            this.placementCanvas.addEventListener('mouseup', (e) => this.handleCanvasMouseUp(e));
         }
 
         // Handle window resize
@@ -171,7 +197,7 @@ class KitchenCalculator {
             this.setupCanvas();
             this.drawElevation();
             if (this.placementCanvas) {
-                this.drawPlacement();
+                this.drawPlacementCanvas();
             }
         });
     }
@@ -1025,157 +1051,535 @@ class KitchenCalculator {
             selectedTab.classList.add('active');
         }
         
-        // Refresh canvas if switching to placement tab
-        if (tabName === 'placement' && this.placementCanvas) {
-            this.drawPlacement();
+        // Load cabinet list and walls when switching to placement tab
+        if (tabName === 'placement') {
+            this.loadCabinetSelectionList();
+            this.populatePlacementWallSelector();
+            if (this.placementCanvas) {
+                this.drawPlacementCanvas();
+            }
         }
     }
 
-    // Cabinet Library
-    loadCabinetLibrary() {
-        if (!CABINET_SYSTEMS || !CABINET_SYSTEMS[this.currentCabinetSystem]) {
-            console.error('Cabinet system not found:', this.currentCabinetSystem);
+    // ====================
+    // NEW CORRECT PLACEMENT FLOW
+    // ====================
+
+    // Step 1: Load cabinet selection list with checkboxes
+    loadCabinetSelectionList() {
+        const container = document.getElementById('cabinet-selection-list');
+        if (!container || !CABINET_SYSTEMS || !CABINET_SYSTEMS[this.currentCabinetSystem]) {
             return;
         }
 
+        container.innerHTML = ''; // Clear existing
         const system = CABINET_SYSTEMS[this.currentCabinetSystem];
         const categories = ['baseCabinets', 'wallCabinets', 'tallCabinets', 'specialtyCabinets'];
-        const categoryNames = {
-            baseCabinets: 'Base Cabinets',
-            wallCabinets: 'Wall Cabinets',
-            tallCabinets: 'Tall Cabinets',
-            specialtyCabinets: 'Specialty Cabinets'
-        };
+        
+        categories.forEach(categoryKey => {
+            if (system[categoryKey] && system[categoryKey].length > 0) {
+                // Add category header
+                const categoryHeader = document.createElement('h4');
+                categoryHeader.style.color = '#2c3e50';
+                categoryHeader.style.margin = '20px 0 10px 0';
+                categoryHeader.style.padding = '10px';
+                categoryHeader.style.background = '#ecf0f1';
+                categoryHeader.style.borderRadius = '5px';
+                categoryHeader.textContent = this.getCategoryName(categoryKey);
+                container.appendChild(categoryHeader);
 
-        categories.forEach(category => {
-            const container = document.getElementById(`${category}-grid`);
-            if (container && system[category]) {
-                container.innerHTML = ''; // Clear existing
-                system[category].forEach(cabinet => {
-                    const card = this.createCabinetCard(cabinet, categoryNames[category]);
-                    container.appendChild(card);
+                // Add cabinets
+                system[categoryKey].forEach(cabinet => {
+                    const item = this.createCabinetSelectionItem(cabinet);
+                    container.appendChild(item);
                 });
             }
         });
     }
 
-    createCabinetCard(cabinet, categoryName) {
-        const template = document.getElementById('cabinet-card-template');
-        const card = template.content.cloneNode(true).querySelector('.cabinet-card');
-        
-        card.dataset.cabinetId = cabinet.id;
-        card.querySelector('.cabinet-name').textContent = cabinet.name;
-        card.querySelector('.cabinet-code').textContent = cabinet.code;
-        card.querySelector('.cabinet-width').textContent = cabinet.width;
-        card.querySelector('.cabinet-height').textContent = cabinet.height;
-        card.querySelector('.cabinet-depth').textContent = cabinet.depth;
-        card.querySelector('.cabinet-price').textContent = `$${cabinet.price.toFixed(2)}`;
-        
-        // Add category badge
-        const badge = document.createElement('div');
-        badge.className = 'cabinet-category-badge';
-        badge.textContent = categoryName.replace(' Cabinets', '');
-        card.appendChild(badge);
-        
-        // Add click event
-        card.addEventListener('click', () => {
-            this.selectCabinet(cabinet, card);
-        });
-        
-        return card;
+    getCategoryName(key) {
+        const names = {
+            'baseCabinets': '🔲 Base Cabinets',
+            'wallCabinets': '🔳 Wall Cabinets',
+            'tallCabinets': '📏 Tall Cabinets',
+            'specialtyCabinets': '⭐ Specialty Units'
+        };
+        return names[key] || key;
     }
 
-    selectCabinet(cabinet, cardElement) {
-        // Remove selection from all cards
-        document.querySelectorAll('.cabinet-card').forEach(card => {
-            card.classList.remove('selected');
+    createCabinetSelectionItem(cabinet) {
+        const template = document.getElementById('cabinet-selection-template');
+        const item = template.content.cloneNode(true).querySelector('.cabinet-selection-item');
+        
+        // Set cabinet data
+        item.dataset.cabinetId = cabinet.id;
+        item.querySelector('.cabinet-name').textContent = cabinet.name;
+        item.querySelector('.cabinet-code').textContent = cabinet.code;
+        item.querySelector('.cabinet-width').textContent = cabinet.width;
+        item.querySelector('.cabinet-height').textContent = cabinet.height;
+        item.querySelector('.cabinet-depth').textContent = cabinet.depth;
+        item.querySelector('.cabinet-price').textContent = `$${cabinet.price.toFixed(2)}`;
+        
+        // Checkbox change event
+        const checkbox = item.querySelector('.cabinet-select-check');
+        checkbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                item.classList.add('selected');
+                // Add to selected cabinets (create a copy with editable properties)
+                this.selectedCabinets.push({...cabinet});
+            } else {
+                item.classList.remove('selected');
+                // Remove from selected cabinets
+                this.selectedCabinets = this.selectedCabinets.filter(c => c.id !== cabinet.id);
+            }
+            this.updatePlaceButton();
         });
         
-        // Select this cabinet
-        this.selectedCabinet = cabinet;
-        cardElement.classList.add('selected');
+        // Edit button
+        const editBtn = item.querySelector('.btn-edit');
+        editBtn.addEventListener('click', () => {
+            this.showEditCabinetModal(cabinet);
+        });
         
-        // Update placement info
-        this.updatePlacementInfo();
-        
-        // Switch to placement tab if not already there
-        const placementTab = document.querySelector('[data-tab="placement"]');
-        if (placementTab && !placementTab.classList.contains('active')) {
-            this.switchTab('placement');
+        return item;
+    }
+
+    updatePlaceButton() {
+        const placeBtn = document.getElementById('place-selected-btn');
+        if (placeBtn) {
+            placeBtn.disabled = this.selectedCabinets.length === 0 || this.selectedWallForPlacement === null;
         }
     }
 
-    updatePlacementInfo() {
-        const infoDiv = document.querySelector('.placement-info');
-        if (!infoDiv) return;
+    // Step 2: Edit cabinet modal
+    showEditCabinetModal(cabinet) {
+        const modal = document.getElementById('cabinet-edit-modal');
+        if (!modal) return;
+
+        // Populate form
+        document.getElementById('edit-cabinet-id').value = cabinet.id;
+        document.getElementById('edit-cabinet-name').textContent = cabinet.name;
+        document.getElementById('edit-cabinet-width').value = parseFloat(cabinet.width);
+        document.getElementById('edit-cabinet-height').value = parseFloat(cabinet.height);
+        document.getElementById('edit-cabinet-depth').value = parseFloat(cabinet.depth);
+
+        modal.classList.add('active');
+
+        // Set up form submission
+        const form = document.getElementById('cabinet-edit-form');
+        const newSubmitHandler = (e) => {
+            e.preventDefault();
+            this.saveEditedCabinet(cabinet.id);
+            form.removeEventListener('submit', newSubmitHandler);
+        };
+        form.addEventListener('submit', newSubmitHandler);
+
+        // Close button
+        const closeBtn = modal.querySelector('.modal-close');
+        const cancelBtn = modal.querySelector('.modal-cancel');
         
-        if (this.selectedCabinet) {
-            infoDiv.innerHTML = `
-                <h4>Selected Cabinet</h4>
-                <p><strong>Name:</strong> ${this.selectedCabinet.name}</p>
-                <p><strong>Code:</strong> ${this.selectedCabinet.code}</p>
-                <p><strong>Width:</strong> ${this.selectedCabinet.width}</p>
-                <p><strong>Height:</strong> ${this.selectedCabinet.height}</p>
-                <p><strong>Depth:</strong> ${this.selectedCabinet.depth}</p>
-                <p><strong>Price:</strong> $${this.selectedCabinet.price.toFixed(2)}</p>
-                <p style="margin-top: 15px; color: #3498db; font-weight: 600;">Click on a wall to place cabinet</p>
-            `;
-        } else {
-            infoDiv.innerHTML = `
-                <h4>No Cabinet Selected</h4>
-                <p>Select a cabinet from the library to place it on a wall.</p>
-            `;
-        }
+        const closeModal = () => {
+            modal.classList.remove('active');
+            form.removeEventListener('submit', newSubmitHandler);
+        };
+
+        closeBtn.onclick = closeModal;
+        cancelBtn.onclick = closeModal;
     }
 
-    // Placement Canvas
-    drawPlacement() {
-        if (!this.placementCtx) return;
+    saveEditedCabinet(cabinetId) {
+        const newWidth = document.getElementById('edit-cabinet-width').value;
+        const newHeight = document.getElementById('edit-cabinet-height').value;
+        const newDepth = document.getElementById('edit-cabinet-depth').value;
+
+        // Update in selectedCabinets
+        const cabinet = this.selectedCabinets.find(c => c.id === cabinetId);
+        if (cabinet) {
+            cabinet.width = newWidth + (this.currentCabinetSystem.includes('metric') ? 'mm' : '"');
+            cabinet.height = newHeight + (this.currentCabinetSystem.includes('metric') ? 'mm' : '"');
+            cabinet.depth = newDepth + (this.currentCabinetSystem.includes('metric') ? 'mm' : '"');
+        }
+
+        // Close modal
+        document.getElementById('cabinet-edit-modal').classList.remove('active');
         
-        const ctx = this.placementCtx;
-        const canvas = this.placementCanvas;
+        // Refresh the cabinet list display
+        this.loadCabinetSelectionList();
         
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        alert('Cabinet dimensions updated! The changes will apply when you place it.');
+    }
+
+    // Step 3: Populate wall selector
+    populatePlacementWallSelector() {
+        const select = document.getElementById('placement-wall-select');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">-- Choose a Wall --</option>';
         
-        if (this.walls.length === 0) {
-            ctx.fillStyle = '#7f8c8d';
-            ctx.font = '16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Add walls in the "Walls" tab first', canvas.width / 2, canvas.height / 2);
+        this.walls.forEach((wall, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `Wall ${this.wallLabels[index]} (${this.formatDimension(wall.length)} × ${this.formatDimension(wall.height)})`;
+            select.appendChild(option);
+        });
+
+        this.updatePlaceButton();
+    }
+
+    // Step 4: Place selected cabinets on wall
+    placeSelectedCabinets() {
+        if (this.selectedCabinets.length === 0) {
+            alert('Please select at least one cabinet!');
             return;
         }
+
+        if (this.selectedWallForPlacement === null) {
+            alert('Please select a wall first!');
+            return;
+        }
+
+        const wall = this.walls[this.selectedWallForPlacement];
+        let currentX = 0; // Start from left edge
+
+        // Try to place each selected cabinet
+        this.selectedCabinets.forEach(cabinet => {
+            const cabinetWidthInFeet = this.parseDimensionToFeet(cabinet.width);
+            const cabinetHeightInFeet = this.parseDimensionToFeet(cabinet.height);
+
+            // Check if it fits
+            if (currentX + cabinetWidthInFeet <= wall.length) {
+                // Check for overlaps with doors/windows
+                const overlaps = this.checkOverlap(wall, currentX, cabinetWidthInFeet, cabinetHeightInFeet, cabinet.type);
+                
+                if (overlaps) {
+                    alert(`⚠️ Cabinet "${cabinet.name}" cannot be placed at position ${this.formatDimension(currentX)} because it overlaps with a door or window.\n\nPlease edit the cabinet dimensions or place it manually by dragging after placement.`);
+                    // Still place it but mark as invalid
+                }
+
+                // Create placed cabinet
+                const placedCabinet = new PlacedCabinet(
+                    cabinet,
+                    this.selectedWallForPlacement,
+                    currentX,
+                    0 // Y position (we'll calculate based on cabinet type)
+                );
+
+                this.placedCabinets.push(placedCabinet);
+                currentX += cabinetWidthInFeet + 0.05; // Small gap between cabinets
+            } else {
+                alert(`⚠️ Cabinet "${cabinet.name}" exceeds available space on wall.\n\nRemaining space: ${this.formatDimension(wall.length - currentX)}\nCabinet width: ${cabinet.width}\n\nPlease edit the cabinet dimensions.`);
+            }
+        });
+
+        // Clear selections
+        this.selectedCabinets = [];
+        document.querySelectorAll('.cabinet-select-check').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.cabinet-selection-item').forEach(item => item.classList.remove('selected'));
         
-        // Draw walls with same elevation view as main canvas
-        this.drawElevation(this.placementCtx, this.placementCanvas);
+        // Update display
+        this.drawPlacementCanvas();
+        this.updatePlacedSummary();
+        this.updatePlaceButton();
+    }
+
+    // Check if cabinet overlaps with obstacles
+    checkOverlap(wall, x, width, height, cabinetType) {
+        const cabinetRight = x + width;
         
+        // Check doors
+        for (let door of wall.doors) {
+            const doorLeft = door.distanceFromLeft;
+            const doorRight = doorLeft + door.width;
+            
+            if (!(cabinetRight < doorLeft || x > doorRight)) {
+                return true; // Overlaps with door
+            }
+        }
+
+        // Check windows (if it's a wall/upper cabinet)
+        if (cabinetType === 'wall' || height > 5) { // Upper cabinets
+            for (let window of wall.windows) {
+                const windowLeft = window.distanceFromLeft;
+                const windowRight = windowLeft + window.width;
+                
+                if (!(cabinetRight < windowLeft || x > windowRight)) {
+                    return true; // Overlaps with window
+                }
+            }
+        }
+
+        return false;
+    }
+
+    parseDimensionToFeet(dimensionStr) {
+        const numValue = parseFloat(dimensionStr);
+        if (dimensionStr.includes('mm')) {
+            return numValue / 304.8; // mm to feet
+        } else if (dimensionStr.includes('"')) {
+            return numValue / 12; // inches to feet
+        } else if (dimensionStr.includes('m')) {
+            return numValue * 3.28084; // meters to feet
+        }
+        return numValue; // assume feet
+    }
+
+    // Step 5: Draw placement canvas
+    drawPlacementCanvas() {
+        if (!this.placementCtx || this.selectedWallForPlacement === null) {
+            // Show message
+            const overlay = document.getElementById('canvas-message');
+            if (overlay) overlay.style.display = 'flex';
+            return;
+        }
+
+        const overlay = document.getElementById('canvas-message');
+        if (overlay) overlay.style.display = 'none';
+
+        const wall = this.walls[this.selectedWallForPlacement];
+        const ctx = this.placementCtx;
+        const canvas = this.placementCanvas;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Draw wall elevation (same as main canvas)
+        const startX = 50;
+        const startY = 50;
+        const wallWidth = wall.length * this.scale;
+        const wallHeight = wall.height * this.scale;
+
+        // Draw wall outline
+        ctx.strokeStyle = '#2c3e50';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(startX, startY, wallWidth, wallHeight);
+
+        // Draw doors
+        ctx.fillStyle = '#8b4513';
+        wall.doors.forEach(door => {
+            const doorX = startX + door.distanceFromLeft * this.scale;
+            const doorY = startY + wallHeight - door.distanceFromFloor * this.scale - door.height * this.scale;
+            const doorWidth = door.width * this.scale;
+            const doorHeight = door.height * this.scale;
+            ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
+        });
+
+        // Draw windows
+        ctx.fillStyle = '#87CEEB';
+        wall.windows.forEach(window => {
+            const windowX = startX + window.distanceFromLeft * this.scale;
+            const windowY = startY + wallHeight - window.distanceFromFloor * this.scale;
+            const windowWidth = window.width * this.scale;
+            const windowHeight = window.height * this.scale;
+            ctx.fillRect(windowX, windowY, windowWidth, windowHeight);
+        });
+
         // Draw placed cabinets
-        this.drawPlacedCabinets();
+        this.drawPlacedCabinetsOnCanvas(startX, startY, wallHeight);
     }
 
-    drawPlacedCabinets() {
-        // TODO: Implement cabinet rendering on placement canvas
-        // Will show placed cabinets on the elevation view
+    drawPlacedCabinetsOnCanvas(wallStartX, wallStartY, wallHeight) {
+        const ctx = this.placementCtx;
+        
+        this.placedCabinets.forEach(placedCabinet => {
+            if (placedCabinet.wallIndex !== this.selectedWallForPlacement) return;
+
+            const cabinet = placedCabinet.cabinet;
+            const widthInFeet = this.parseDimensionToFeet(cabinet.width);
+            const heightInFeet = this.parseDimensionToFeet(cabinet.height);
+
+            const cabinetX = wallStartX + placedCabinet.x * this.scale;
+            let cabinetY;
+            
+            // Determine Y position based on cabinet type
+            if (cabinet.type === 'wall') {
+                cabinetY = wallStartY + 20; // Upper cabinet
+            } else if (cabinet.type === 'tall') {
+                cabinetY = wallStartY; // Floor to ceiling
+            } else {
+                cabinetY = wallStartY + wallHeight - heightInFeet * this.scale; // Base cabinet (on floor)
+            }
+
+            const cabinetWidth = widthInFeet * this.scale;
+            const cabinetHeight = heightInFeet * this.scale;
+
+            // Draw cabinet box
+            ctx.fillStyle = placedCabinet === this.draggedCabinet ? '#3498db' : '#95a5a6';
+            ctx.fillRect(cabinetX, cabinetY, cabinetWidth, cabinetHeight);
+            
+            // Draw cabinet border
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(cabinetX, cabinetY, cabinetWidth, cabinetHeight);
+
+            // Draw cabinet label
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(cabinet.code, cabinetX + cabinetWidth / 2, cabinetY + cabinetHeight / 2);
+
+            // Store bounds for dragging
+            placedCabinet.bounds = {
+                x: cabinetX,
+                y: cabinetY,
+                width: cabinetWidth,
+                height: cabinetHeight
+            };
+        });
     }
 
-    autoFillCabinets() {
+    // Step 6: Drag and drop with snapping
+    handleCanvasMouseDown(e) {
+        if (this.selectedWallForPlacement === null) return;
+
+        const rect = this.placementCanvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Find clicked cabinet
+        for (let cabinet of this.placedCabinets) {
+            if (cabinet.wallIndex !== this.selectedWallForPlacement) continue;
+            if (!cabinet.bounds) continue;
+
+            const bounds = cabinet.bounds;
+            if (mouseX >= bounds.x && mouseX <= bounds.x + bounds.width &&
+                mouseY >= bounds.y && mouseY <= bounds.y + bounds.height) {
+                this.draggedCabinet = cabinet;
+                this.dragOffset = {
+                    x: mouseX - bounds.x,
+                    y: mouseY - bounds.y
+                };
+                this.placementCanvas.style.cursor = 'grabbing';
+                break;
+            }
+        }
+    }
+
+    handleCanvasMouseMove(e) {
+        if (!this.draggedCabinet) return;
+
+        const rect = this.placementCanvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const wall = this.walls[this.selectedWallForPlacement];
+        const wallStartX = 50;
+        
+        // Calculate new position in feet
+        let newX = (mouseX - this.dragOffset.x - wallStartX) / this.scale;
+        
+        // Snap to edges and other cabinets
+        const SNAP_THRESHOLD = 0.2; // feet
+        
+        // Snap to left edge
+        if (Math.abs(newX) < SNAP_THRESHOLD) {
+            newX = 0;
+        }
+        
+        // Snap to right edge
+        const cabinetWidth = this.parseDimensionToFeet(this.draggedCabinet.cabinet.width);
+        if (Math.abs((newX + cabinetWidth) - wall.length) < SNAP_THRESHOLD) {
+            newX = wall.length - cabinetWidth;
+        }
+
+        // Snap to other cabinets
+        for (let other of this.placedCabinets) {
+            if (other === this.draggedCabinet || other.wallIndex !== this.selectedWallForPlacement) continue;
+            
+            const otherWidth = this.parseDimensionToFeet(other.cabinet.width);
+            const otherRight = other.x + otherWidth;
+            
+            // Snap to left edge of other cabinet
+            if (Math.abs((newX + cabinetWidth) - other.x) < SNAP_THRESHOLD) {
+                newX = other.x - cabinetWidth;
+            }
+            
+            // Snap to right edge of other cabinet
+            if (Math.abs(newX - otherRight) < SNAP_THRESHOLD) {
+                newX = otherRight;
+            }
+        }
+
+        // Keep within wall bounds
+        newX = Math.max(0, Math.min(newX, wall.length - cabinetWidth));
+
+        this.draggedCabinet.x = newX;
+        this.drawPlacementCanvas();
+    }
+
+    handleCanvasMouseUp(e) {
+        if (this.draggedCabinet) {
+            this.draggedCabinet = null;
+            this.placementCanvas.style.cursor = 'move';
+        }
+    }
+
+    // Update placed cabinets summary
+    updatePlacedSummary() {
+        const container = document.getElementById('placed-cabinets-summary');
+        const totalCostEl = document.getElementById('total-cost');
+        
+        if (!container) return;
+
+        if (this.placedCabinets.length === 0) {
+            container.innerHTML = '<p class="empty-state">No cabinets placed yet</p>';
+            if (totalCostEl) totalCostEl.textContent = '0.00';
+            return;
+        }
+
+        container.innerHTML = '';
+        let totalCost = 0;
+
+        this.placedCabinets.forEach((placed, index) => {
+            const div = document.createElement('div');
+            div.style.padding = '8px';
+            div.style.background = 'white';
+            div.style.marginBottom = '5px';
+            div.style.borderRadius = '5px';
+            div.style.fontSize = '0.85em';
+            
+            const wallLabel = this.wallLabels[placed.wallIndex];
+            div.innerHTML = `
+                <strong>${placed.cabinet.name}</strong><br>
+                Wall ${wallLabel} @ ${this.formatDimension(placed.x)}<br>
+                $${placed.cabinet.price.toFixed(2)}
+            `;
+            container.appendChild(div);
+            
+            totalCost += placed.cabinet.price;
+        });
+
+        if (totalCostEl) {
+            totalCostEl.textContent = totalCost.toFixed(2);
+        }
+    }
+
+    // Step 7: Auto-fill spaces
+    autoFillSpaces() {
         if (this.walls.length === 0) {
             alert('Please add walls first!');
             return;
         }
+
+        alert('🤖 Auto-Fill Algorithm\n\nThis feature will:\n1. Analyze all available spaces on each wall\n2. Find the best-fit cabinet combinations\n3. Consider doors, windows, and existing cabinets\n4. Suggest optimal placement\n5. Calculate total cost\n\nComing in next iteration!');
         
-        alert('Auto-fill feature will be implemented in the next phase. It will automatically suggest the best cabinet combinations for your available spaces.');
-        // TODO: Implement auto-fill algorithm
-        // 1. Analyze leftover spaces for each wall
-        // 2. Find best-fit cabinet combinations
-        // 3. Place cabinets automatically
-        // 4. Show total cost
+        // TODO: Implement intelligent auto-fill
+        // - Calculate leftover spaces
+        // - Match with available cabinet sizes
+        // - Optimize for standard modules (600mm/24")
+        // - Minimize cuts and waste
     }
 
-    clearPlacement() {
-        if (confirm('Are you sure you want to clear all placed cabinets?')) {
+    // Clear all placed cabinets
+    clearAllCabinets() {
+        if (this.placedCabinets.length === 0) {
+            alert('No cabinets to clear!');
+            return;
+        }
+
+        if (confirm(`Are you sure you want to remove all ${this.placedCabinets.length} placed cabinets?`)) {
             this.placedCabinets = [];
-            this.drawPlacement();
+            this.drawPlacementCanvas();
+            this.updatePlacedSummary();
         }
     }
 }
