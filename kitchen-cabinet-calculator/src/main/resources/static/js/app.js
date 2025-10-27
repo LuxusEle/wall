@@ -1547,6 +1547,13 @@ class KitchenCalculator {
 
     // Draw mock placeholders for selected (but not yet placed) cabinets
     drawMockPlaceholders(wallStartX, wallStartY, wallHeight) {
+        console.log('drawMockPlaceholders called', {
+            selectedCabinetsCount: this.selectedCabinets.length,
+            wallStartX,
+            wallStartY,
+            wallHeight
+        });
+        
         if (this.selectedCabinets.length === 0) return;
 
         const ctx = this.placementCtx;
@@ -1555,11 +1562,16 @@ class KitchenCalculator {
         let currentX = 0; // Start from left edge
 
         this.selectedCabinets.forEach((cabinet, index) => {
+            console.log(`Drawing mock cabinet ${index}:`, cabinet);
+            
             const widthInFeet = this.parseDimensionToFeet(cabinet.width);
             const heightInFeet = this.parseDimensionToFeet(cabinet.height);
 
+            console.log(`Cabinet dimensions in feet:`, { widthInFeet, heightInFeet });
+
             // Check if it fits
             if (currentX + widthInFeet > wall.length) {
+                console.log('Cabinet does not fit, skipping');
                 return; // Skip if doesn't fit
             }
 
@@ -1568,6 +1580,8 @@ class KitchenCalculator {
             
             // Determine Y position based on cabinet ID (infer type from ID)
             const cabinetType = this.getCabinetType(cabinet.id);
+            console.log(`Cabinet type: ${cabinetType}`);
+            
             if (cabinetType === 'wall') {
                 cabinetY = wallStartY + 20; // Upper cabinet
             } else if (cabinetType === 'tall') {
@@ -1578,6 +1592,8 @@ class KitchenCalculator {
 
             const cabinetWidth = widthInFeet * this.scale;
             const cabinetHeight = heightInFeet * this.scale;
+
+            console.log(`Drawing box at:`, { cabinetX, cabinetY, cabinetWidth, cabinetHeight });
 
             // Draw mock placeholder with dashed outline and semi-transparent
             ctx.save();
