@@ -577,6 +577,84 @@ class KitchenCalculator {
                 false
             );
         });
+        
+        // Draw detailed segment dimensions at the bottom
+        this.drawBottomSegmentDimensions(wall, startX, startY, wallWidth, wallHeight);
+    }
+
+    drawBottomSegmentDimensions(wall, startX, startY, wallWidth, wallHeight) {
+        const ctx = this.ctx;
+        const dimensionY = startY + wallHeight + 60; // Position below the main dimension line
+        
+        // Collect all elements (doors and windows) with their positions
+        const elements = [];
+        
+        wall.doors.forEach(door => {
+            elements.push({
+                start: door.distanceFromLeft,
+                end: door.distanceFromLeft + door.width,
+                width: door.width,
+                type: 'door'
+            });
+        });
+        
+        wall.windows.forEach(window => {
+            elements.push({
+                start: window.distanceFromLeft,
+                end: window.distanceFromLeft + window.width,
+                width: window.width,
+                type: 'window'
+            });
+        });
+        
+        // Sort by start position
+        elements.sort((a, b) => a.start - b.start);
+        
+        // Draw segments from left to right
+        let currentPos = 0;
+        let segmentIndex = 0;
+        
+        elements.forEach((element, index) => {
+            // Draw leftover space before this element
+            if (element.start > currentPos) {
+                const leftoverStart = currentPos;
+                const leftoverEnd = element.start;
+                const leftoverWidth = leftoverEnd - leftoverStart;
+                
+                this.drawDimensionLine(
+                    startX + (leftoverStart * this.scale),
+                    dimensionY,
+                    startX + (leftoverEnd * this.scale),
+                    dimensionY,
+                    this.formatDimension(leftoverWidth),
+                    true
+                );
+            }
+            
+            // Draw the element (door/window)
+            this.drawDimensionLine(
+                startX + (element.start * this.scale),
+                dimensionY,
+                startX + (element.end * this.scale),
+                dimensionY,
+                this.formatDimension(element.width),
+                true
+            );
+            
+            currentPos = element.end;
+        });
+        
+        // Draw final leftover space after last element
+        if (currentPos < wall.length) {
+            this.drawDimensionLine(
+                startX + (currentPos * this.scale),
+                dimensionY,
+                startX + (wall.length * this.scale),
+                dimensionY,
+                this.formatDimension(wall.length - currentPos),
+                true
+            );
+        }
     }
 
     drawLeftoverSpaces(wall, startX, startY, wallWidth, wallHeight) {
