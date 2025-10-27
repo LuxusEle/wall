@@ -1122,6 +1122,20 @@ class KitchenCalculator {
                 }
             }, 50); // Small delay to ensure tab is fully visible
         }
+        
+        // Initialize box builder when switching to box details tab
+        if (tabName === 'boxdetails') {
+            setTimeout(() => {
+                if (this.boxViewer) {
+                    this.boxViewer.resize();
+                }
+                // Ensure cabinet selector is populated
+                if (typeof this.populateBoxCabinetSelector === 'function') {
+                    this.populateBoxCabinetSelector();
+                }
+                console.log('Box Details tab activated');
+            }, 50);
+        }
     }
 
     // ====================
