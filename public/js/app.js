@@ -18,12 +18,18 @@ class KitchenCalculator {
         this.draggedCabinet = null; // Cabinet being dragged
         this.dragOffset = { x: 0, y: 0 };
         
+        // Box Builder components
+        this.boxBuilder = null;
+        this.boxViewer = null;
+        this.currentBox = null;
+        
         this.init();
     }
 
     init() {
         this.setupCanvas();
         this.setupEventListeners();
+        this.initializeBoxBuilder();
         this.updateDisplay();
     }
 
@@ -215,7 +221,34 @@ class KitchenCalculator {
             if (this.placementCanvas) {
                 this.drawPlacementCanvas();
             }
+            if (this.boxViewer) {
+                this.boxViewer.resize();
+            }
         });
+
+        // BOX DETAILS: Cabinet selection
+        const boxCabinetSelect = document.getElementById('box-cabinet-select');
+        if (boxCabinetSelect) {
+            boxCabinetSelect.addEventListener('change', (e) => {
+                this.selectBoxCabinet(e.target.value);
+            });
+        }
+
+        // BOX DETAILS: Parameter inputs
+        const boxWidth = document.getElementById('box-width');
+        const boxHeight = document.getElementById('box-height');
+        const boxDepth = document.getElementById('box-depth');
+        if (boxWidth) boxWidth.addEventListener('input', () => this.updateBoxParameters());
+        if (boxHeight) boxHeight.addEventListener('input', () => this.updateBoxParameters());
+        if (boxDepth) boxDepth.addEventListener('input', () => this.updateBoxParameters());
+
+        // BOX DETAILS: Build box button
+        const buildBoxBtn = document.getElementById('build-box-btn');
+        if (buildBoxBtn) {
+            buildBoxBtn.addEventListener('click', () => {
+                this.buildAndDisplayBox();
+            });
+        }
     }
 
     showWallForm() {
