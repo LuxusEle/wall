@@ -233,8 +233,9 @@ class KitchenCalculator {
         const ctx = this.ctx;
         const canvas = this.canvas;
         
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Clear canvas with white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         if (this.walls.length === 0) {
             ctx.fillStyle = '#95a5a6';
@@ -244,16 +245,13 @@ class KitchenCalculator {
             return;
         }
 
-        // Draw grid background
-        this.drawGrid();
-
-        // Calculate total layout
-        let currentX = 50; // Start position with margin
-        const startY = 100;
+        // Calculate total layout - centered in canvas
+        let currentX = 80; // Start position with margin
+        const startY = 120; // More space for top dimensions
 
         this.walls.forEach((wall, index) => {
             this.drawWall(wall, currentX, startY);
-            currentX += wall.length * this.scale + 30; // Add spacing between walls
+            currentX += wall.length * this.scale + 60; // Add spacing between walls
         });
     }
 
@@ -261,19 +259,18 @@ class KitchenCalculator {
         const ctx = this.ctx;
         const canvas = this.canvas;
         
-        ctx.strokeStyle = '#ecf0f1';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#f0f0f0';
+        ctx.lineWidth = 0.5;
 
-        // Vertical grid lines
-        for (let x = 0; x < canvas.width; x += this.scale) {
+        // Light grid for reference
+        for (let x = 0; x < canvas.width; x += this.scale * 2) {
             ctx.beginPath();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, canvas.height);
             ctx.stroke();
         }
 
-        // Horizontal grid lines
-        for (let y = 0; y < canvas.height; y += this.scale) {
+        for (let y = 0; y < canvas.height; y += this.scale * 2) {
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(canvas.width, y);
@@ -285,26 +282,30 @@ class KitchenCalculator {
         const ctx = this.ctx;
         const wallWidth = wall.length * this.scale;
         const wallHeight = wall.height * this.scale;
+        
+        // Cabinet dimensions
+        const upperCabHeight = 2.5 * this.scale; // Upper cabinets 2.5ft high
+        const lowerCabHeight = 2.5 * this.scale; // Lower cabinets 2.5ft high
+        const counterHeight = 3 * this.scale; // Counter at 3ft from floor
+        const upperCabBottom = startY + 1.5 * this.scale; // 1.5ft from top
+        const lowerCabTop = startY + wallHeight - lowerCabHeight;
 
-        // Draw wall background
-        ctx.fillStyle = '#34495e';
-        ctx.fillRect(startX, startY, wallWidth, wallHeight);
+        // Draw wall label above
+        ctx.fillStyle = '#000000';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`ELEVATION ${wall.label}`, startX + wallWidth / 2, startY - 80);
 
-        // Draw wall outline
-        ctx.strokeStyle = '#2c3e50';
-        ctx.lineWidth = 3;
+        // Draw main wall outline (light)
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 1;
         ctx.strokeRect(startX, startY, wallWidth, wallHeight);
 
-        // Draw wall label
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 20px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`Wall ${wall.label}`, startX + wallWidth / 2, startY - 10);
+        // Draw upper cabinets
+        this.drawUpperCabinets(wall, startX, upperCabBottom, wallWidth, upperCabHeight);
 
-        // Draw dimensions
-        ctx.fillStyle = '#2c3e50';
-        ctx.font = '12px Arial';
-        ctx.fillText(`${wall.length}' × ${wall.height}'`, startX + wallWidth / 2, startY - 30);
+        // Draw lower cabinets
+        this.drawLowerCabinets(wall, startX, lowerCabTop, wallWidth, lowerCabHeight);
 
         // Draw doors
         wall.doors.forEach(door => {
@@ -313,11 +314,218 @@ class KitchenCalculator {
 
         // Draw windows
         wall.windows.forEach(window => {
-            this.drawWindow(window, startX, startY);
+            this.drawWindow(window, startX, startY, wallHeight);
         });
 
-        // Draw dimension lines
-        this.drawDimensions(startX, startY, wallWidth, wallHeight);
+        // Draw dimension lines - multiple levels
+        this.drawComprehensiveDimensions(wall, startX, startY, wallWidth, wallHeight);
+    }
+
+    drawUpperCabinets(wall, startX, startY, wallWidth, cabHeight) {
+        const ctx = this.ctx;
+        
+        // Calculate available sections (avoiding doors and windows)
+        const sections = this.calculateCabinetSections(wall, startY, cabHeight, true);
+        
+        sections.forEach(section => {
+            // Draw cabinet box
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(section.x, section.y, section.width, section.height);
+            
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(section.x, section.y, section.width, section.height);
+            
+            // Divide into individual cabinet units
+            const numCabinets = Math.max(1, Math.floor(section.width / (2 * this.scale)));
+            const cabWidth = section.width / numCabinets;
+            
+            for (let i = 0; i < numCabinets; i++) {
+                const cabX = section.x + (i * cabWidth);
+                
+                // Draw cabinet door outlines
+                const doorMargin = this.scale * 0.1;
+                ctx.strokeStyle = '#666666';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(
+                    cabX + doorMargin, 
+                    section.y + doorMargin,
+                    cabWidth - (doorMargin * 2),
+                    section.height - (doorMargin * 2)
+                );
+                
+                // Draw handle
+                ctx.fillStyle = '#999999';
+                ctx.fillRect(
+                    cabX + cabWidth/2 - this.scale * 0.15,
+                    section.y + section.height - this.scale * 0.4,
+                    this.scale * 0.3,
+                    this.scale * 0.08
+                );
+                
+                // Vertical divider
+                if (i < numCabinets - 1) {
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cabX + cabWidth, section.y);
+                    ctx.lineTo(cabX + cabWidth, section.y + section.height);
+                    ctx.stroke();
+                }
+            }
+            
+            // Label EQ (equal spacing)
+            if (numCabinets > 1) {
+                ctx.fillStyle = '#000000';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('EQ', section.x + section.width / 2, section.y + section.height / 2);
+            }
+        });
+    }
+
+    drawLowerCabinets(wall, startX, startY, wallWidth, cabHeight) {
+        const ctx = this.ctx;
+        
+        // Calculate available sections (avoiding doors)
+        const sections = this.calculateCabinetSections(wall, startY, cabHeight, false);
+        
+        sections.forEach(section => {
+            // Draw cabinet box
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(section.x, section.y, section.width, section.height);
+            
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(section.x, section.y, section.width, section.height);
+            
+            // Divide into drawers and doors
+            const numUnits = Math.max(1, Math.floor(section.width / (2 * this.scale)));
+            const unitWidth = section.width / numUnits;
+            
+            for (let i = 0; i < numUnits; i++) {
+                const unitX = section.x + (i * unitWidth);
+                const doorMargin = this.scale * 0.1;
+                
+                // Draw 3 drawers on top
+                const drawerHeight = section.height * 0.3 / 3;
+                for (let d = 0; d < 3; d++) {
+                    const drawerY = section.y + (d * drawerHeight);
+                    ctx.strokeStyle = '#666666';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(
+                        unitX + doorMargin,
+                        drawerY + doorMargin/2,
+                        unitWidth - (doorMargin * 2),
+                        drawerHeight - doorMargin/2
+                    );
+                    
+                    // Drawer handle
+                    ctx.fillStyle = '#999999';
+                    ctx.fillRect(
+                        unitX + unitWidth/2 - this.scale * 0.15,
+                        drawerY + drawerHeight/2 - this.scale * 0.04,
+                        this.scale * 0.3,
+                        this.scale * 0.08
+                    );
+                }
+                
+                // Draw cabinet door below
+                const doorY = section.y + (3 * drawerHeight);
+                const doorHeight = section.height - (3 * drawerHeight);
+                ctx.strokeRect(
+                    unitX + doorMargin,
+                    doorY + doorMargin,
+                    unitWidth - (doorMargin * 2),
+                    doorHeight - (doorMargin * 2)
+                );
+                
+                // Door handle
+                ctx.fillStyle = '#999999';
+                ctx.fillRect(
+                    unitX + unitWidth/2 - this.scale * 0.15,
+                    doorY + doorHeight - this.scale * 0.5,
+                    this.scale * 0.3,
+                    this.scale * 0.08
+                );
+                
+                // Vertical divider
+                if (i < numUnits - 1) {
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(unitX + unitWidth, section.y);
+                    ctx.lineTo(unitX + unitWidth, section.y + section.height);
+                    ctx.stroke();
+                }
+            }
+            
+            // Label EQ
+            if (numUnits > 1) {
+                ctx.fillStyle = '#000000';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('EQ', section.x + section.width / 2, section.y + section.height + 15);
+            }
+        });
+    }
+
+    calculateCabinetSections(wall, cabY, cabHeight, isUpper) {
+        const sections = [];
+        const wallStartX = 80; // Should match drawWall startX
+        let currentX = wallStartX;
+        const wallEndX = wallStartX + (wall.length * this.scale);
+        
+        // Create array of obstacles (doors and windows if upper)
+        const obstacles = [];
+        
+        wall.doors.forEach(door => {
+            obstacles.push({
+                start: wallStartX + (door.distanceFromLeft * this.scale),
+                end: wallStartX + ((door.distanceFromLeft + door.width) * this.scale)
+            });
+        });
+        
+        if (isUpper) {
+            wall.windows.forEach(window => {
+                const windowY = 120 + (window.distanceFromFloor * this.scale);
+                // Only block if window overlaps with upper cabinet area
+                if (windowY < cabY + cabHeight) {
+                    obstacles.push({
+                        start: wallStartX + (window.distanceFromLeft * this.scale),
+                        end: wallStartX + ((window.distanceFromLeft + window.width) * this.scale)
+                    });
+                }
+            });
+        }
+        
+        // Sort obstacles by start position
+        obstacles.sort((a, b) => a.start - b.start);
+        
+        // Find continuous sections
+        obstacles.forEach(obstacle => {
+            if (obstacle.start - currentX > this.scale * 1) { // Minimum 1ft section
+                sections.push({
+                    x: currentX,
+                    y: cabY,
+                    width: obstacle.start - currentX,
+                    height: cabHeight
+                });
+            }
+            currentX = Math.max(currentX, obstacle.end);
+        });
+        
+        // Add final section
+        if (wallEndX - currentX > this.scale * 1) {
+            sections.push({
+                x: currentX,
+                y: cabY,
+                width: wallEndX - currentX,
+                height: cabHeight
+            });
+        }
+        
+        return sections;
     }
 
     drawDoor(door, wallStartX, wallStartY, wallHeight) {
@@ -327,85 +535,253 @@ class KitchenCalculator {
         const doorHeight = door.height * this.scale;
         const doorY = wallStartY + wallHeight - doorHeight;
 
-        // Draw door
-        ctx.fillStyle = '#8B4513';
+        // Draw door frame
+        ctx.fillStyle = '#f5f5f5';
         ctx.fillRect(doorX, doorY, doorWidth, doorHeight);
         
+        ctx.strokeStyle = '#8B4513';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(doorX, doorY, doorWidth, doorHeight);
+        
+        // Door panel
+        const panelMargin = this.scale * 0.2;
         ctx.strokeStyle = '#654321';
         ctx.lineWidth = 2;
-        ctx.strokeRect(doorX, doorY, doorWidth, doorHeight);
+        ctx.strokeRect(
+            doorX + panelMargin,
+            doorY + panelMargin,
+            doorWidth - (panelMargin * 2),
+            doorHeight - (panelMargin * 2)
+        );
 
-        // Draw door label
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('DOOR', doorX + doorWidth / 2, doorY + doorHeight / 2);
-        ctx.fillText(`${door.width}' × ${door.height}'`, doorX + doorWidth / 2, doorY + doorHeight / 2 + 12);
-
-        // Draw distance label
-        ctx.fillStyle = '#e74c3c';
-        ctx.font = '11px Arial';
-        ctx.fillText(`${door.distanceFromLeft}'`, doorX + doorWidth / 2, doorY - 5);
+        // Door knob
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(
+            doorX + doorWidth * 0.75,
+            doorY + doorHeight / 2,
+            this.scale * 0.1,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
     }
 
-    drawWindow(window, wallStartX, wallStartY) {
+    drawWindow(window, wallStartX, wallStartY, wallHeight) {
         const ctx = this.ctx;
         const windowX = wallStartX + window.distanceFromLeft * this.scale;
         const windowWidth = window.width * this.scale;
         const windowHeight = window.height * this.scale;
         const windowY = wallStartY + window.distanceFromFloor * this.scale;
 
-        // Draw window
-        ctx.fillStyle = '#87CEEB';
+        // Draw window frame
+        ctx.fillStyle = '#E6F3FF';
         ctx.fillRect(windowX, windowY, windowWidth, windowHeight);
         
         ctx.strokeStyle = '#4682B4';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.strokeRect(windowX, windowY, windowWidth, windowHeight);
 
-        // Draw window cross
+        // Window panes (4 panes)
+        ctx.strokeStyle = '#87CEEB';
+        ctx.lineWidth = 2;
+        
+        // Vertical divider
         ctx.beginPath();
-        ctx.moveTo(windowX, windowY);
-        ctx.lineTo(windowX + windowWidth, windowY + windowHeight);
-        ctx.moveTo(windowX + windowWidth, windowY);
-        ctx.lineTo(windowX, windowY + windowHeight);
+        ctx.moveTo(windowX + windowWidth / 2, windowY);
+        ctx.lineTo(windowX + windowWidth / 2, windowY + windowHeight);
         ctx.stroke();
-
-        // Draw window label
-        ctx.fillStyle = '#2c3e50';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('WINDOW', windowX + windowWidth / 2, windowY + windowHeight / 2);
-        ctx.fillText(`${window.width}' × ${window.height}'`, windowX + windowWidth / 2, windowY + windowHeight / 2 + 12);
+        
+        // Horizontal divider
+        ctx.beginPath();
+        ctx.moveTo(windowX, windowY + windowHeight / 2);
+        ctx.lineTo(windowX + windowWidth, windowY + windowHeight / 2);
+        ctx.stroke();
+        
+        // Diagonal lines in each pane for glass effect
+        ctx.strokeStyle = '#B0E0E6';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 2; i++) {
+            for (let j = 0; j < 2; j++) {
+                const paneX = windowX + (i * windowWidth / 2);
+                const paneY = windowY + (j * windowHeight / 2);
+                ctx.beginPath();
+                ctx.moveTo(paneX, paneY);
+                ctx.lineTo(paneX + windowWidth / 2, paneY + windowHeight / 2);
+                ctx.stroke();
+            }
+        }
     }
 
-    drawDimensions(x, y, width, height) {
+    drawComprehensiveDimensions(wall, startX, startY, wallWidth, wallHeight) {
         const ctx = this.ctx;
-        const arrowSize = 5;
+        
+        // Top dimension line (total width)
+        this.drawDimensionLine(
+            startX, 
+            startY - 60, 
+            startX + wallWidth, 
+            startY - 60,
+            `${wall.length}'`,
+            true
+        );
+        
+        // Bottom dimension line (total width)
+        this.drawDimensionLine(
+            startX,
+            startY + wallHeight + 40,
+            startX + wallWidth,
+            startY + wallHeight + 40,
+            `${wall.length}'`,
+            true
+        );
+        
+        // Right side dimension line (total height)
+        this.drawDimensionLine(
+            startX + wallWidth + 30,
+            startY,
+            startX + wallWidth + 30,
+            startY + wallHeight,
+            `${wall.height}'`,
+            false
+        );
+        
+        // Dimension lines for doors
+        wall.doors.forEach(door => {
+            const doorX = startX + door.distanceFromLeft * this.scale;
+            const doorWidth = door.width * this.scale;
+            const doorY = startY + wallHeight - (door.height * this.scale);
+            
+            // Distance from left
+            if (door.distanceFromLeft > 0) {
+                this.drawDimensionLine(
+                    startX,
+                    startY - 30,
+                    doorX,
+                    startY - 30,
+                    `${door.distanceFromLeft.toFixed(1)}"`,
+                    true
+                );
+            }
+            
+            // Door width
+            this.drawDimensionLine(
+                doorX,
+                startY - 30,
+                doorX + doorWidth,
+                startY - 30,
+                `${door.width}'`,
+                true
+            );
+        });
+        
+        // Dimension lines for windows
+        wall.windows.forEach(window => {
+            const windowX = startX + window.distanceFromLeft * this.scale;
+            const windowWidth = window.width * this.scale;
+            const windowY = startY + window.distanceFromFloor * this.scale;
+            const windowHeight = window.height * this.scale;
+            
+            // Window width dimension
+            this.drawDimensionLine(
+                windowX,
+                windowY - 15,
+                windowX + windowWidth,
+                windowY - 15,
+                `${window.width}'`,
+                true
+            );
+            
+            // Window height dimension
+            this.drawDimensionLine(
+                windowX + windowWidth + 15,
+                windowY,
+                windowX + windowWidth + 15,
+                windowY + windowHeight,
+                `${window.height}'`,
+                false
+            );
+        });
+    }
 
-        ctx.strokeStyle = '#e74c3c';
-        ctx.fillStyle = '#e74c3c';
+    drawDimensionLine(x1, y1, x2, y2, label, isHorizontal) {
+        const ctx = this.ctx;
+        const arrowSize = 6;
+        const offset = 5;
+        
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = '#000000';
         ctx.lineWidth = 1;
-
-        // Horizontal dimension line (bottom)
-        const dimY = y + height + 20;
+        
+        // Main dimension line
         ctx.beginPath();
-        ctx.moveTo(x, dimY);
-        ctx.lineTo(x + width, dimY);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
         ctx.stroke();
+        
+        // Extension lines
+        if (isHorizontal) {
+            // Vertical extension lines
+            ctx.beginPath();
+            ctx.moveTo(x1, y1 - offset);
+            ctx.lineTo(x1, y1 + offset);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(x2, y2 - offset);
+            ctx.lineTo(x2, y2 + offset);
+            ctx.stroke();
+            
+            // Arrows
+            this.drawArrow(x1, y1, 1, 0, arrowSize);
+            this.drawArrow(x2, y2, -1, 0, arrowSize);
+        } else {
+            // Horizontal extension lines
+            ctx.beginPath();
+            ctx.moveTo(x1 - offset, y1);
+            ctx.lineTo(x1 + offset, y1);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(x2 - offset, y2);
+            ctx.lineTo(x2 + offset, y2);
+            ctx.stroke();
+            
+            // Arrows
+            this.drawArrow(x1, y1, 0, 1, arrowSize);
+            this.drawArrow(x2, y2, 0, -1, arrowSize);
+        }
+        
+        // Label
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        if (isHorizontal) {
+            ctx.fillText(label, (x1 + x2) / 2, y1 - 8);
+        } else {
+            ctx.save();
+            ctx.translate((x1 + x2) / 2, (y1 + y2) / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(label, 0, 0);
+            ctx.restore();
+        }
+    }
 
-        // Arrows
+    drawArrow(x, y, dx, dy, size) {
+        const ctx = this.ctx;
+        
         ctx.beginPath();
-        ctx.moveTo(x, dimY);
-        ctx.lineTo(x + arrowSize, dimY - arrowSize);
-        ctx.lineTo(x + arrowSize, dimY + arrowSize);
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - dx * size - dy * size/2, y - dy * size + dx * size/2);
+        ctx.lineTo(x - dx * size + dy * size/2, y - dy * size - dx * size/2);
+        ctx.closePath();
         ctx.fill();
+    }
 
-        ctx.beginPath();
-        ctx.moveTo(x + width, dimY);
-        ctx.lineTo(x + width - arrowSize, dimY - arrowSize);
-        ctx.lineTo(x + width - arrowSize, dimY + arrowSize);
-        ctx.fill();
+    drawDimensions(startX, startY, wallWidth, wallHeight) {
+        // This function is replaced by drawComprehensiveDimensions
+        // Keeping for backward compatibility
     }
 }
 
