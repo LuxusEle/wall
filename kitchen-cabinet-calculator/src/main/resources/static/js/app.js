@@ -9,6 +9,11 @@ class KitchenCalculator {
         this.wallLabels = ['A', 'B', 'C', 'D'];
         this.currentUnit = 'feet'; // Default unit
         this.unitSymbol = 'ft';
+        this.currentCabinetSystem = 'european-metric'; // Default cabinet system
+        this.selectedCabinet = null; // Currently selected cabinet from library
+        this.placedCabinets = []; // Cabinets placed on walls
+        this.placementCanvas = document.getElementById('placement-canvas');
+        this.placementCtx = this.placementCanvas ? this.placementCanvas.getContext('2d') : null;
         
         this.init();
     }
@@ -16,6 +21,7 @@ class KitchenCalculator {
     init() {
         this.setupCanvas();
         this.setupEventListeners();
+        this.loadCabinetLibrary();
         this.updateDisplay();
     }
 
@@ -69,6 +75,11 @@ class KitchenCalculator {
     setupCanvas() {
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = 600;
+        
+        if (this.placementCanvas) {
+            this.placementCanvas.width = this.placementCanvas.offsetWidth;
+            this.placementCanvas.height = 600;
+        }
     }
 
     setupEventListeners() {
@@ -77,6 +88,23 @@ class KitchenCalculator {
             this.currentUnit = e.target.value;
             this.unitSymbol = this.getUnitSymbol();
             this.updateDisplay();
+        });
+
+        // Cabinet system selector
+        const cabinetSystemSelect = document.getElementById('cabinet-system-select');
+        if (cabinetSystemSelect) {
+            cabinetSystemSelect.addEventListener('change', (e) => {
+                this.currentCabinetSystem = e.target.value;
+                this.loadCabinetLibrary();
+                this.selectedCabinet = null;
+            });
+        }
+
+        // Tab navigation
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.switchTab(tab.dataset.tab);
+            });
         });
 
         // Add Wall Button
@@ -123,10 +151,28 @@ class KitchenCalculator {
             this.drawElevation();
         });
 
+        // Placement actions
+        const autoFillBtn = document.getElementById('auto-fill-btn');
+        if (autoFillBtn) {
+            autoFillBtn.addEventListener('click', () => {
+                this.autoFillCabinets();
+            });
+        }
+
+        const clearPlacementBtn = document.getElementById('clear-placement-btn');
+        if (clearPlacementBtn) {
+            clearPlacementBtn.addEventListener('click', () => {
+                this.clearPlacement();
+            });
+        }
+
         // Handle window resize
         window.addEventListener('resize', () => {
             this.setupCanvas();
             this.drawElevation();
+            if (this.placementCanvas) {
+                this.drawPlacement();
+            }
         });
     }
 
@@ -953,6 +999,184 @@ class KitchenCalculator {
     drawDimensions(startX, startY, wallWidth, wallHeight) {
         // This function is replaced by drawComprehensiveDimensions
         // Keeping for backward compatibility
+    }
+
+    // Tab Navigation
+    switchTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Show selected tab content
+        const selectedContent = document.getElementById(`${tabName}-tab`);
+        if (selectedContent) {
+            selectedContent.classList.add('active');
+        }
+        
+        // Add active class to selected tab
+        const selectedTab = document.querySelector(`[data-tab="${tabName}"]`);
+        if (selectedTab) {
+            selectedTab.classList.add('active');
+        }
+        
+        // Refresh canvas if switching to placement tab
+        if (tabName === 'placement' && this.placementCanvas) {
+            this.drawPlacement();
+        }
+    }
+
+    // Cabinet Library
+    loadCabinetLibrary() {
+        if (!CABINET_SYSTEMS || !CABINET_SYSTEMS[this.currentCabinetSystem]) {
+            console.error('Cabinet system not found:', this.currentCabinetSystem);
+            return;
+        }
+
+        const system = CABINET_SYSTEMS[this.currentCabinetSystem];
+        const categories = ['baseCabinets', 'wallCabinets', 'tallCabinets', 'specialtyCabinets'];
+        const categoryNames = {
+            baseCabinets: 'Base Cabinets',
+            wallCabinets: 'Wall Cabinets',
+            tallCabinets: 'Tall Cabinets',
+            specialtyCabinets: 'Specialty Cabinets'
+        };
+
+        categories.forEach(category => {
+            const container = document.getElementById(`${category}-grid`);
+            if (container && system[category]) {
+                container.innerHTML = ''; // Clear existing
+                system[category].forEach(cabinet => {
+                    const card = this.createCabinetCard(cabinet, categoryNames[category]);
+                    container.appendChild(card);
+                });
+            }
+        });
+    }
+
+    createCabinetCard(cabinet, categoryName) {
+        const template = document.getElementById('cabinet-card-template');
+        const card = template.content.cloneNode(true).querySelector('.cabinet-card');
+        
+        card.dataset.cabinetId = cabinet.id;
+        card.querySelector('.cabinet-name').textContent = cabinet.name;
+        card.querySelector('.cabinet-code').textContent = cabinet.code;
+        card.querySelector('.cabinet-width').textContent = cabinet.width;
+        card.querySelector('.cabinet-height').textContent = cabinet.height;
+        card.querySelector('.cabinet-depth').textContent = cabinet.depth;
+        card.querySelector('.cabinet-price').textContent = `$${cabinet.price.toFixed(2)}`;
+        
+        // Add category badge
+        const badge = document.createElement('div');
+        badge.className = 'cabinet-category-badge';
+        badge.textContent = categoryName.replace(' Cabinets', '');
+        card.appendChild(badge);
+        
+        // Add click event
+        card.addEventListener('click', () => {
+            this.selectCabinet(cabinet, card);
+        });
+        
+        return card;
+    }
+
+    selectCabinet(cabinet, cardElement) {
+        // Remove selection from all cards
+        document.querySelectorAll('.cabinet-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        // Select this cabinet
+        this.selectedCabinet = cabinet;
+        cardElement.classList.add('selected');
+        
+        // Update placement info
+        this.updatePlacementInfo();
+        
+        // Switch to placement tab if not already there
+        const placementTab = document.querySelector('[data-tab="placement"]');
+        if (placementTab && !placementTab.classList.contains('active')) {
+            this.switchTab('placement');
+        }
+    }
+
+    updatePlacementInfo() {
+        const infoDiv = document.querySelector('.placement-info');
+        if (!infoDiv) return;
+        
+        if (this.selectedCabinet) {
+            infoDiv.innerHTML = `
+                <h4>Selected Cabinet</h4>
+                <p><strong>Name:</strong> ${this.selectedCabinet.name}</p>
+                <p><strong>Code:</strong> ${this.selectedCabinet.code}</p>
+                <p><strong>Width:</strong> ${this.selectedCabinet.width}</p>
+                <p><strong>Height:</strong> ${this.selectedCabinet.height}</p>
+                <p><strong>Depth:</strong> ${this.selectedCabinet.depth}</p>
+                <p><strong>Price:</strong> $${this.selectedCabinet.price.toFixed(2)}</p>
+                <p style="margin-top: 15px; color: #3498db; font-weight: 600;">Click on a wall to place cabinet</p>
+            `;
+        } else {
+            infoDiv.innerHTML = `
+                <h4>No Cabinet Selected</h4>
+                <p>Select a cabinet from the library to place it on a wall.</p>
+            `;
+        }
+    }
+
+    // Placement Canvas
+    drawPlacement() {
+        if (!this.placementCtx) return;
+        
+        const ctx = this.placementCtx;
+        const canvas = this.placementCanvas;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (this.walls.length === 0) {
+            ctx.fillStyle = '#7f8c8d';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Add walls in the "Walls" tab first', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+        
+        // Draw walls with same elevation view as main canvas
+        this.drawElevation(this.placementCtx, this.placementCanvas);
+        
+        // Draw placed cabinets
+        this.drawPlacedCabinets();
+    }
+
+    drawPlacedCabinets() {
+        // TODO: Implement cabinet rendering on placement canvas
+        // Will show placed cabinets on the elevation view
+    }
+
+    autoFillCabinets() {
+        if (this.walls.length === 0) {
+            alert('Please add walls first!');
+            return;
+        }
+        
+        alert('Auto-fill feature will be implemented in the next phase. It will automatically suggest the best cabinet combinations for your available spaces.');
+        // TODO: Implement auto-fill algorithm
+        // 1. Analyze leftover spaces for each wall
+        // 2. Find best-fit cabinet combinations
+        // 3. Place cabinets automatically
+        // 4. Show total cost
+    }
+
+    clearPlacement() {
+        if (confirm('Are you sure you want to clear all placed cabinets?')) {
+            this.placedCabinets = [];
+            this.drawPlacement();
+        }
     }
 }
 

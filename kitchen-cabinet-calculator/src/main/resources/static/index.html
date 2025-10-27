@@ -11,15 +11,34 @@
         <header>
             <h1>Kitchen Cabinet Cost Calculator</h1>
             <p class="subtitle">Professional Wall & Cabinet Planning System</p>
-            <div class="unit-selector">
-                <label for="unit-select">Units:</label>
-                <select id="unit-select">
-                    <option value="feet">Feet (ft)</option>
-                    <option value="meters">Meters (m)</option>
-                    <option value="millimeters">Millimeters (mm)</option>
-                </select>
+            <div class="header-controls">
+                <div class="unit-selector">
+                    <label for="unit-select">Units:</label>
+                    <select id="unit-select">
+                        <option value="feet">Feet (ft)</option>
+                        <option value="meters">Meters (m)</option>
+                        <option value="millimeters">Millimeters (mm)</option>
+                    </select>
+                </div>
+                <div class="cabinet-system-selector">
+                    <label for="cabinet-system-select">Cabinet System:</label>
+                    <select id="cabinet-system-select">
+                        <option value="european-metric">European Frameless (Metric)</option>
+                        <option value="european-imperial">European Frameless (Imperial)</option>
+                    </select>
+                </div>
             </div>
         </header>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <button class="tab active" data-tab="walls">📐 Walls</button>
+            <button class="tab" data-tab="cabinets">🗄️ Cabinet Library</button>
+            <button class="tab" data-tab="placement">🎯 Place Cabinets</button>
+        </div>
+
+        <!-- Walls Tab -->
+        <div class="tab-content active" id="walls-tab">
 
         <div class="main-layout">
             <!-- Left Panel: Input Controls -->
@@ -112,7 +131,88 @@
                 </div>
             </div>
         </div>
+        </div>
+
+        <!-- Cabinet Library Tab -->
+        <div class="tab-content" id="cabinets-tab">
+            <div class="cabinet-library">
+                <div class="cabinet-library-header">
+                    <h2>Cabinet Library - <span id="current-system">European Frameless (Metric)</span></h2>
+                    <p class="system-info">Standard sizes based on <span id="system-standard">600mm module</span></p>
+                </div>
+
+                <!-- Cabinet Categories -->
+                <div class="cabinet-categories">
+                    <!-- Base Cabinets -->
+                    <div class="category-section">
+                        <h3>🔲 Base Cabinets</h3>
+                        <div class="cabinet-grid" id="base-cabinets-grid"></div>
+                    </div>
+
+                    <!-- Wall Cabinets -->
+                    <div class="category-section">
+                        <h3>🔳 Wall Cabinets</h3>
+                        <div class="cabinet-grid" id="wall-cabinets-grid"></div>
+                    </div>
+
+                    <!-- Tall Cabinets -->
+                    <div class="category-section">
+                        <h3>📏 Tall Cabinets</h3>
+                        <div class="cabinet-grid" id="tall-cabinets-grid"></div>
+                    </div>
+
+                    <!-- Specialty Cabinets -->
+                    <div class="category-section">
+                        <h3>⭐ Specialty Units</h3>
+                        <div class="cabinet-grid" id="specialty-cabinets-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Placement Tab -->
+        <div class="tab-content" id="placement-tab">
+            <div class="placement-layout">
+                <div class="placement-sidebar">
+                    <h2>📦 Placed Cabinets</h2>
+                    <div class="placed-cabinets-list" id="placed-cabinets-list">
+                        <p class="empty-state">No cabinets placed yet</p>
+                    </div>
+                    <div class="placement-actions">
+                        <button type="button" class="btn-primary" id="auto-fill-btn">🤖 Auto-Fill Walls</button>
+                        <button type="button" class="btn-secondary" id="clear-cabinets-btn">🗑️ Clear All</button>
+                    </div>
+                </div>
+                <div class="placement-view">
+                    <div class="placement-controls">
+                        <h2>Select Wall to Place Cabinets:</h2>
+                        <select id="placement-wall-select">
+                            <option value="">-- Select Wall --</option>
+                        </select>
+                    </div>
+                    <div class="placement-canvas-container">
+                        <canvas id="placement-canvas"></canvas>
+                    </div>
+                    <div class="placement-info">
+                        <p>💡 Tip: Click on a cabinet from the Cabinet Library, then click on the wall to place it</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Cabinet Card Template -->
+    <template id="cabinet-card-template">
+        <div class="cabinet-card">
+            <div class="cabinet-icon"></div>
+            <div class="cabinet-info">
+                <h4 class="cabinet-name"></h4>
+                <p class="cabinet-dimensions"></p>
+                <p class="cabinet-price"></p>
+            </div>
+            <button class="btn-add-cabinet">+ Select</button>
+        </div>
+    </template>
 
     <!-- Door/Window Input Template -->
     <template id="door-template">
@@ -165,6 +265,7 @@
         </div>
     </template>
 
+    <script src="js/cabinetData.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
