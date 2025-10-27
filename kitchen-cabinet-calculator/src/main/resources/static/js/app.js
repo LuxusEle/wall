@@ -75,12 +75,20 @@ class KitchenCalculator {
     }
 
     setupCanvas() {
-        this.canvas.width = this.canvas.offsetWidth;
+        this.canvas.width = this.canvas.offsetWidth || 1200;
         this.canvas.height = 600;
         
         if (this.placementCanvas) {
-            this.placementCanvas.width = this.placementCanvas.offsetWidth;
+            // Force proper width - use parent container width if offsetWidth is 0
+            const containerWidth = this.placementCanvas.parentElement?.offsetWidth || 1200;
+            this.placementCanvas.width = containerWidth > 0 ? containerWidth : 1200;
             this.placementCanvas.height = 600;
+            console.log('Placement canvas setup:', {
+                width: this.placementCanvas.width,
+                height: this.placementCanvas.height,
+                offsetWidth: this.placementCanvas.offsetWidth,
+                containerWidth: containerWidth
+            });
         }
     }
 
@@ -1063,11 +1071,23 @@ class KitchenCalculator {
         
         // Load cabinet list and walls when switching to placement tab
         if (tabName === 'placement') {
-            this.loadCabinetSelectionList();
-            this.populatePlacementWallSelector();
-            if (this.placementCanvas) {
-                this.drawPlacementCanvas();
-            }
+            // Recalculate canvas size now that tab is visible
+            setTimeout(() => {
+                if (this.placementCanvas) {
+                    const containerWidth = this.placementCanvas.parentElement?.offsetWidth || 1200;
+                    this.placementCanvas.width = containerWidth > 0 ? containerWidth : 1200;
+                    this.placementCanvas.height = 600;
+                    console.log('Canvas resized on tab switch:', {
+                        width: this.placementCanvas.width,
+                        height: this.placementCanvas.height
+                    });
+                }
+                this.loadCabinetSelectionList();
+                this.populatePlacementWallSelector();
+                if (this.placementCanvas) {
+                    this.drawPlacementCanvas();
+                }
+            }, 50); // Small delay to ensure tab is fully visible
         }
     }
 
