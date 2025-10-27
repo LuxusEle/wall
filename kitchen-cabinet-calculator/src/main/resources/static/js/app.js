@@ -432,7 +432,8 @@ class KitchenCalculator {
         const windowX = wallStartX + window.distanceFromLeft * this.scale;
         const windowWidth = window.width * this.scale;
         const windowHeight = window.height * this.scale;
-        const windowY = wallStartY + window.distanceFromFloor * this.scale;
+        // Window lift is measured from floor (bottom of wall) to bottom of window
+        const windowY = wallStartY + wallHeight - window.distanceFromFloor * this.scale - windowHeight;
 
         // Draw window frame
         ctx.fillStyle = '#E6F3FF';
@@ -542,8 +543,9 @@ class KitchenCalculator {
         wall.windows.forEach(window => {
             const windowX = startX + window.distanceFromLeft * this.scale;
             const windowWidth = window.width * this.scale;
-            const windowY = startY + window.distanceFromFloor * this.scale;
             const windowHeight = window.height * this.scale;
+            // Window Y is measured from bottom of wall (floor) to bottom of window
+            const windowY = startY + wallHeight - window.distanceFromFloor * this.scale - windowHeight;
             
             // Window width dimension (above window)
             this.drawDimensionLine(
@@ -565,12 +567,12 @@ class KitchenCalculator {
                 false
             );
             
-            // Window distance from floor (left side)
+            // Window lift from floor (left side) - from floor to bottom of window
             this.drawDimensionLine(
                 windowX - 15,
                 startY + wallHeight,
                 windowX - 15,
-                windowY,
+                windowY + windowHeight,
                 this.formatDimension(window.distanceFromFloor),
                 false
             );
