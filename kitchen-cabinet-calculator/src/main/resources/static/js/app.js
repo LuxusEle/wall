@@ -1385,6 +1385,12 @@ class KitchenCalculator {
 
     // Step 5: Draw placement canvas
     drawPlacementCanvas() {
+        console.log('drawPlacementCanvas called', {
+            hasCtx: !!this.placementCtx,
+            selectedWall: this.selectedWallForPlacement,
+            wallsCount: this.walls.length
+        });
+        
         if (!this.placementCtx || this.selectedWallForPlacement === null) {
             // Show message
             const overlay = document.getElementById('canvas-message');
@@ -1400,17 +1406,32 @@ class KitchenCalculator {
         }
 
         const wall = this.walls[this.selectedWallForPlacement];
+        console.log('Drawing wall:', wall);
+        
         const ctx = this.placementCtx;
         const canvas = this.placementCanvas;
 
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Clear canvas with white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Draw wall elevation (same as main canvas)
         const startX = 50;
         const startY = 50;
         const wallWidth = wall.length * this.scale;
         const wallHeight = wall.height * this.scale;
+
+        console.log('Canvas dimensions:', {
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height,
+            wallWidth,
+            wallHeight,
+            scale: this.scale
+        });
+
+        // Draw wall background (light gray)
+        ctx.fillStyle = '#f5f5f5';
+        ctx.fillRect(startX, startY, wallWidth, wallHeight);
 
         // Draw wall outline
         ctx.strokeStyle = '#2c3e50';
