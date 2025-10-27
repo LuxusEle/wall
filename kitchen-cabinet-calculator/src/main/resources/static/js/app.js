@@ -282,13 +282,6 @@ class KitchenCalculator {
         const ctx = this.ctx;
         const wallWidth = wall.length * this.scale;
         const wallHeight = wall.height * this.scale;
-        
-        // Cabinet dimensions
-        const upperCabHeight = 2.5 * this.scale; // Upper cabinets 2.5ft high
-        const lowerCabHeight = 2.5 * this.scale; // Lower cabinets 2.5ft high
-        const counterHeight = 3 * this.scale; // Counter at 3ft from floor
-        const upperCabBottom = startY + 1.5 * this.scale; // 1.5ft from top
-        const lowerCabTop = startY + wallHeight - lowerCabHeight;
 
         // Draw wall label above
         ctx.fillStyle = '#000000';
@@ -296,16 +289,14 @@ class KitchenCalculator {
         ctx.textAlign = 'center';
         ctx.fillText(`ELEVATION ${wall.label}`, startX + wallWidth / 2, startY - 80);
 
-        // Draw main wall outline (light)
-        ctx.strokeStyle = '#cccccc';
-        ctx.lineWidth = 1;
+        // Draw main wall background (light gray)
+        ctx.fillStyle = '#f5f5f5';
+        ctx.fillRect(startX, startY, wallWidth, wallHeight);
+
+        // Draw main wall outline
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
         ctx.strokeRect(startX, startY, wallWidth, wallHeight);
-
-        // Draw upper cabinets
-        this.drawUpperCabinets(wall, startX, upperCabBottom, wallWidth, upperCabHeight);
-
-        // Draw lower cabinets
-        this.drawLowerCabinets(wall, startX, lowerCabTop, wallWidth, lowerCabHeight);
 
         // Draw doors
         wall.doors.forEach(door => {
@@ -322,210 +313,18 @@ class KitchenCalculator {
     }
 
     drawUpperCabinets(wall, startX, startY, wallWidth, cabHeight) {
-        const ctx = this.ctx;
-        
-        // Calculate available sections (avoiding doors and windows)
-        const sections = this.calculateCabinetSections(wall, startY, cabHeight, true);
-        
-        sections.forEach(section => {
-            // Draw cabinet box
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(section.x, section.y, section.width, section.height);
-            
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(section.x, section.y, section.width, section.height);
-            
-            // Divide into individual cabinet units
-            const numCabinets = Math.max(1, Math.floor(section.width / (2 * this.scale)));
-            const cabWidth = section.width / numCabinets;
-            
-            for (let i = 0; i < numCabinets; i++) {
-                const cabX = section.x + (i * cabWidth);
-                
-                // Draw cabinet door outlines
-                const doorMargin = this.scale * 0.1;
-                ctx.strokeStyle = '#666666';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(
-                    cabX + doorMargin, 
-                    section.y + doorMargin,
-                    cabWidth - (doorMargin * 2),
-                    section.height - (doorMargin * 2)
-                );
-                
-                // Draw handle
-                ctx.fillStyle = '#999999';
-                ctx.fillRect(
-                    cabX + cabWidth/2 - this.scale * 0.15,
-                    section.y + section.height - this.scale * 0.4,
-                    this.scale * 0.3,
-                    this.scale * 0.08
-                );
-                
-                // Vertical divider
-                if (i < numCabinets - 1) {
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(cabX + cabWidth, section.y);
-                    ctx.lineTo(cabX + cabWidth, section.y + section.height);
-                    ctx.stroke();
-                }
-            }
-            
-            // Label EQ (equal spacing)
-            if (numCabinets > 1) {
-                ctx.fillStyle = '#000000';
-                ctx.font = '10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('EQ', section.x + section.width / 2, section.y + section.height / 2);
-            }
-        });
+        // Cabinet rendering will be implemented in future iteration
+        // For now, walls display blank with only doors and windows
     }
 
     drawLowerCabinets(wall, startX, startY, wallWidth, cabHeight) {
-        const ctx = this.ctx;
-        
-        // Calculate available sections (avoiding doors)
-        const sections = this.calculateCabinetSections(wall, startY, cabHeight, false);
-        
-        sections.forEach(section => {
-            // Draw cabinet box
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(section.x, section.y, section.width, section.height);
-            
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(section.x, section.y, section.width, section.height);
-            
-            // Divide into drawers and doors
-            const numUnits = Math.max(1, Math.floor(section.width / (2 * this.scale)));
-            const unitWidth = section.width / numUnits;
-            
-            for (let i = 0; i < numUnits; i++) {
-                const unitX = section.x + (i * unitWidth);
-                const doorMargin = this.scale * 0.1;
-                
-                // Draw 3 drawers on top
-                const drawerHeight = section.height * 0.3 / 3;
-                for (let d = 0; d < 3; d++) {
-                    const drawerY = section.y + (d * drawerHeight);
-                    ctx.strokeStyle = '#666666';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(
-                        unitX + doorMargin,
-                        drawerY + doorMargin/2,
-                        unitWidth - (doorMargin * 2),
-                        drawerHeight - doorMargin/2
-                    );
-                    
-                    // Drawer handle
-                    ctx.fillStyle = '#999999';
-                    ctx.fillRect(
-                        unitX + unitWidth/2 - this.scale * 0.15,
-                        drawerY + drawerHeight/2 - this.scale * 0.04,
-                        this.scale * 0.3,
-                        this.scale * 0.08
-                    );
-                }
-                
-                // Draw cabinet door below
-                const doorY = section.y + (3 * drawerHeight);
-                const doorHeight = section.height - (3 * drawerHeight);
-                ctx.strokeRect(
-                    unitX + doorMargin,
-                    doorY + doorMargin,
-                    unitWidth - (doorMargin * 2),
-                    doorHeight - (doorMargin * 2)
-                );
-                
-                // Door handle
-                ctx.fillStyle = '#999999';
-                ctx.fillRect(
-                    unitX + unitWidth/2 - this.scale * 0.15,
-                    doorY + doorHeight - this.scale * 0.5,
-                    this.scale * 0.3,
-                    this.scale * 0.08
-                );
-                
-                // Vertical divider
-                if (i < numUnits - 1) {
-                    ctx.strokeStyle = '#000000';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(unitX + unitWidth, section.y);
-                    ctx.lineTo(unitX + unitWidth, section.y + section.height);
-                    ctx.stroke();
-                }
-            }
-            
-            // Label EQ
-            if (numUnits > 1) {
-                ctx.fillStyle = '#000000';
-                ctx.font = '10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('EQ', section.x + section.width / 2, section.y + section.height + 15);
-            }
-        });
+        // Cabinet rendering will be implemented in future iteration
+        // For now, walls display blank with only doors and windows
     }
 
     calculateCabinetSections(wall, cabY, cabHeight, isUpper) {
-        const sections = [];
-        const wallStartX = 80; // Should match drawWall startX
-        let currentX = wallStartX;
-        const wallEndX = wallStartX + (wall.length * this.scale);
-        
-        // Create array of obstacles (doors and windows if upper)
-        const obstacles = [];
-        
-        wall.doors.forEach(door => {
-            obstacles.push({
-                start: wallStartX + (door.distanceFromLeft * this.scale),
-                end: wallStartX + ((door.distanceFromLeft + door.width) * this.scale)
-            });
-        });
-        
-        if (isUpper) {
-            wall.windows.forEach(window => {
-                const windowY = 120 + (window.distanceFromFloor * this.scale);
-                // Only block if window overlaps with upper cabinet area
-                if (windowY < cabY + cabHeight) {
-                    obstacles.push({
-                        start: wallStartX + (window.distanceFromLeft * this.scale),
-                        end: wallStartX + ((window.distanceFromLeft + window.width) * this.scale)
-                    });
-                }
-            });
-        }
-        
-        // Sort obstacles by start position
-        obstacles.sort((a, b) => a.start - b.start);
-        
-        // Find continuous sections
-        obstacles.forEach(obstacle => {
-            if (obstacle.start - currentX > this.scale * 1) { // Minimum 1ft section
-                sections.push({
-                    x: currentX,
-                    y: cabY,
-                    width: obstacle.start - currentX,
-                    height: cabHeight
-                });
-            }
-            currentX = Math.max(currentX, obstacle.end);
-        });
-        
-        // Add final section
-        if (wallEndX - currentX > this.scale * 1) {
-            sections.push({
-                x: currentX,
-                y: cabY,
-                width: wallEndX - currentX,
-                height: cabHeight
-            });
-        }
-        
-        return sections;
+        // Cabinet section calculation will be implemented in future iteration
+        return [];
     }
 
     drawDoor(door, wallStartX, wallStartY, wallHeight) {
