@@ -116,6 +116,10 @@ KitchenCalculator.prototype.selectBoxCabinet = function(cabinetId) {
         return;
     }
 
+    // Store selected cabinet
+    this.selectedBoxCabinet = cabinet;
+    console.log('Selected cabinet stored:', this.selectedBoxCabinet);
+
     // Show parameters panel
     document.getElementById('box-parameters').style.display = 'block';
 
