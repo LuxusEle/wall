@@ -4,21 +4,22 @@
 KitchenCalculator.prototype.initializeBoxBuilder = function() {
     console.log('=== initializeBoxBuilder called ===');
     
-    // Initialize BoxBuilder and BoxViewer
-    if (typeof BoxBuilder !== 'undefined') {
-        this.boxBuilder = new BoxBuilder();
-        console.log('‚úÖ BoxBuilder initialized');
+    // Initialize SimpleBoxRenderer (much simpler!)
+    if (typeof SimpleBoxRenderer !== 'undefined') {
+        this.simpleRenderer = new SimpleBoxRenderer();
+        console.log('‚úÖ SimpleBoxRenderer initialized');
     } else {
-        console.error('‚ùå BoxBuilder class not found');
+        console.error('‚ùå SimpleBoxRenderer class not found');
     }
 
-    const boxCanvas = document.getElementById('box-canvas');
-    if (boxCanvas && typeof BoxViewer !== 'undefined') {
-        this.boxViewer = new BoxViewer('box-canvas');
-        console.log('‚úÖ BoxViewer initialized');
-    } else {
-        console.error('‚ùå BoxViewer not found or canvas missing');
-    }
+    // Skip BoxViewer for now - we'll use the simple renderer
+    // const boxCanvas = document.getElementById('box-canvas');
+    // if (boxCanvas && typeof BoxViewer !== 'undefined') {
+    //     this.boxViewer = new BoxViewer('box-canvas');
+    //     console.log('‚úÖ BoxViewer initialized');
+    // } else {
+    //     console.error('‚ùå BoxViewer not found or canvas missing');
+    // }
 
     // Check if CABINET_SYSTEMS is loaded
     console.log('CABINET_SYSTEMS loaded:', typeof window.CABINET_SYSTEMS !== 'undefined');
@@ -163,7 +164,7 @@ KitchenCalculator.prototype.updateBoxParameters = function() {
 };
 
 KitchenCalculator.prototype.buildAndDisplayBox = function() {
-    if (!this.selectedBoxCabinet || !this.boxBuilder || !this.boxViewer) {
+    if (!this.selectedBoxCabinet || !this.simpleRenderer) {
         alert('Please select a cabinet first!');
         return;
     }
@@ -181,16 +182,15 @@ KitchenCalculator.prototype.buildAndDisplayBox = function() {
         depth: depth
     };
 
-    console.log('Building box for:', cabinetSpec);
+    console.log('Rendering simple box for:', cabinetSpec);
 
-    // Build the box
+    // Render the simple 2D box
     try {
-        this.currentBox = this.boxBuilder.buildBox(cabinetSpec);
-        console.log('Box built:', this.currentBox);
+        this.simpleRenderer.renderBox(cabinetSpec, 'box-canvas');
+        console.log('‚úÖ Simple box rendered');
 
-        // Display the box
-        this.displayBoxDetails(this.currentBox);
-        this.boxViewer.displayBox(this.currentBox);
+        // Show a simple summary instead of complex details
+        this.displaySimpleBoxSummary(cabinetSpec);
 
         // Hide canvas message
         const canvasMessage = document.getElementById('box-canvas-message');
@@ -317,3 +317,16 @@ KitchenCalculator.prototype.displayEdgeBandingList = function(edgeBanding) {
         container.appendChild(div);
     });
 };
+ 
+ / /   S i m p l e   s u m m a r y   f o r   P h a s e   1   -   j u s t   s h o w   b a s i c   i n f o  
+ K i t c h e n C a l c u l a t o r . p r o t o t y p e . d i s p l a y S i m p l e B o x S u m m a r y   =   f u n c t i o n ( c a b i n e t )   {  
+         c o n s o l e . l o g ( ' D i s p l a y i n g   s i m p l e   s u m m a r y   f o r : ' ,   c a b i n e t ) ;  
+          
+         c o n s t   s u m m a r y D i v   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' b o x - s u m m a r y ' ) ;  
+         i f   ( s u m m a r y D i v )   {  
+                 s u m m a r y D i v . s t y l e . d i s p l a y   =   ' b l o c k ' ;  
+                 s u m m a r y D i v . i n n e r H T M L   =   \ < h 3 > =ÿÊ‹  C a b i n e t   S u m m a r y < / h 3 > < d i v   c l a s s = \  
+ c a b i n e t - i n f o \ > < p > < s t r o n g > N a m e : < / s t r o n g >   \ < / p > < p > < s t r o n g > D i m e n s i o n s : < / s t r o n g >   \   ◊   \   ◊   \   m m < / p > < p > < s t r o n g > S t a t u s : < / s t r o n g >   '  R e a d y   f o r   p l a n n i n g < / p > < / d i v > \ ;  
+         }  
+ } ;  
+ 
